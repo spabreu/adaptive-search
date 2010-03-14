@@ -1,0 +1,72 @@
+#! /bin/bash
+
+if [ -z "$THRS" ]; then THRS="1 2 4 8 12 16"; fi
+if [ -z "$NRUNS" ]; then NRUNS=30; fi
+
+RUNS=`eval echo {1..$NRUNS}`
+# FLAGS=""
+
+# -- run_bench BENCH PARAM ----------------------------------------------------
+function run_bench {
+    XPARAM=$PARAM
+    [ $PARAM = x ] && XPARAM="0"
+    [ $PARAM = x ] && PARAM=""
+    for NTHR in $THRS; do
+	for RUN in $RUNS; do
+	    echo -n "$BENCH $XPARAM $NTHR "
+	    $XBENCH $PARAM -t $NTHR $FLAGS -c -b 0 | tail -1
+	done
+    done
+}
+
+if [ -z "$B" ]; then
+    BENCHES="langford partit partit-nr magic-square all-interval alpha perfect-square queens"
+else
+    BENCHES="$B"
+fi
+
+RUNPFX=RESULTS
+[ -z "$RUN" ] && RUN=$(date +%Y.%m.%d-%H:%M)
+
+BENCH=$1
+XBENCH=$1
+# FLAGS=""
+case $BENCH in
+
+    langford) [ -z "$PARAMS" ] && PARAMS="80 100 120 140 160 180 200";;
+    partit) [ -z "$PARAMS" ] && PARAMS="1200 1400 1600 1800 2000";;
+    partit-nr) XBENCH=partit; FLAGS="$FLAGS -a 5000";
+            [ -z "$PARAMS" ] && PARAMS="1200 1400 1600 1800 2000 2200 2400";;
+    magic-square) [ -z "$PARAMS" ] && PARAMS="30 40 50 60 70 80 90 100";;
+    all-interval) [ -z "$PARAMS" ] && PARAMS="50 100 150 200 250 300 350 400";;
+    alpha) [ -z "$PARAMS" ] && PARAMS="x";;
+    perfect-square) [ -z "$PARAMS" ] && PARAMS="1 2 3 4";;
+    queens) [ -z "$PARAMS" ] && PARAMS="1000 2000 4000 5000 6000";;
+
+    ALL)
+	mkdir -p $RUNPFX/$RUN
+	for B in $BENCHES; do
+	    if [ ! -e $RUNPFX/$RUN/$B.txt ]; then
+		echo "running $0 $B..." 1>&2
+		$0 $B | tee $RUNPFX/$RUN/$B.txt
+	    fi
+	done;;
+
+    ALL-I)
+	mkdir -p $RUNPFX/$RUN
+	for B in $BENCHES; do
+	    if [ ! -e $RUNPFX/$RUN/$B+-I.txt ]; then
+		echo "running $0 $B -I..." 1>&2
+		THRS="4 8 12 16" $0 $B -I | tee $RUNPFX/$RUN/$B+-I.txt
+	    fi
+	done;;
+
+    *) echo unknown benchmark $BENCH; exit 1;;
+esac
+shift
+
+FLAGS="$FLAGS $*"
+
+for PARAM in $PARAMS; do
+    run_bench $BENCH $PARAM
+done

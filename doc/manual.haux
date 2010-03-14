@@ -1,0 +1,14 @@
+\@addtocsec{htoc}{1}{0}{\@print{1}\quad{}Introduction{}}
+\citation{saga01}
+\@addtocsec{htoc}{2}{0}{\@print{2}\quad{}Installation{}}
+\@addtocsec{htoc}{3}{0}{\@print{3}\quad{}The Adaptive Search API{}}
+\@addtocsec{htoc}{4}{1}{\@print{3.1}\quad{}Overall usage{}}
+\@addtocsec{htoc}{5}{1}{\@print{3.2}\quad{}Input parameters{}}
+\citation{saga01}
+\@addtocsec{htoc}{6}{1}{\@print{3.3}\quad{}Output parameters{}}
+\@addtocsec{htoc}{7}{1}{\@print{3.4}\quad{}Miscellaneous parameters{}}
+\@addtocsec{htoc}{8}{1}{\@print{3.5}\quad{}Functions{}}
+\@addtocsec{htoc}{9}{1}{\@print{3.6}\quad{}User functions{}}
+\@addtocsec{htoc}{10}{0}{\@print{4}\quad{}Other utility functions{}}
+\@addtocsec{htoc}{11}{0}{\@print{5}\quad{}Using the default \texttt{main()} function{}}
+\bibcite{saga01}{1}

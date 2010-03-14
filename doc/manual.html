@@ -1,0 +1,292 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>manual</TITLE>
+
+<META http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<META name="GENERATOR" content="hevea 1.10">
+<STYLE type="text/css">
+.li-itemize{margin:1ex 0ex;}
+.flushright{text-align:right;margin-left:auto;margin-right:0ex;}
+DIV TABLE{margin-left:inherit;margin-right:inherit;}
+PRE{text-align:left;margin-left:0ex;margin-right:auto;}
+BLOCKQUOTE{margin-left:4ex;margin-right:4ex;text-align:left;}
+TD P{margin:0px;}
+</STYLE>
+</HEAD>
+<BODY >
+<!--HEVEA command line is: /usr/bin/hevea -O -s -fix article.hva manual.tex -->
+<!--CUT DEF section 1 --><P>
+
+&#XA0;</P><P><BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+
+<FONT SIZE=6><B>Adaptive Search</B></FONT></P><P><BR>
+</P><HR SIZE=2><DIV CLASS="flushright"><P><FONT SIZE=5>A Library to Solve CSPs<BR>
+Edition 1.1, for Adaptive Search version 1.0.0<BR>
+
+</FONT></P></DIV><P><BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+</P><P><FONT SIZE=4><B>by Daniel Diaz, Philippe Codognet and Salvador Abreu</B></FONT></P><HR SIZE=2><P>&#XA0;</P><P><BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+</P><P>Copyright (C) 2002-2010 Daniel Diaz, Philippe Codognet and Salvador Abreu</P><P>Permission is granted to make and distribute verbatim copies of this manual
+provided the copyright notice and this permission notice are preserved on all
+copies.</P><P>Permission is granted to copy and distribute modified versions of this manual
+under the conditions for verbatim copying, provided that the entire resulting
+derived work is distributed under the terms of a permission notice identical
+to this one.</P><P>Permission is granted to copy and distribute translations of this manual into
+another language, under the above conditions for modified versions, except
+that this permission notice may be stated in a translation approved by the
+Free Software Foundation, 59 Temple Place - Suite 330, Boston, MA 02111, USA.</P><!--TOC section Introduction-->
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc1">1</A>&#XA0;&#XA0;Introduction</H2><!--SEC END --><P>The Adaptive Search library provides a set of functions to solve CSPs by a
+local search method. For more information consult [<A HREF="#saga01">1</A>] The current
+release only works for problems that can be stated as permutation
+problems. More precisely, all <I>n</I> variables have a same domain <I>x</I><SUB>1</SUB>&#XA0;..&#XA0;<I>x<SUB>n</SUB></I>
+and are subject to an implicit <I>all-different</I> constraint. Several
+problems fall into this category and some examples are provided with the
+library.</P><!--TOC section Installation-->
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc2">2</A>&#XA0;&#XA0;Installation</H2><!--SEC END --><P>Please refer to the file called <TT>INSTALL</TT> located in the src subdirectory.</P><!--TOC section The Adaptive Search API-->
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc3">3</A>&#XA0;&#XA0;The Adaptive Search API</H2><!--SEC END --><!--TOC subsection Overall usage-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc4">3.1</A>&#XA0;&#XA0;Overall usage</H3><!--SEC END --><P>The typical use of the API is as follows:</P><UL CLASS="itemize"><LI CLASS="li-itemize">Initialize a structure with the input data needed by the solver. This
+includes problem data (e.g. size, domain,...) together with parameters to
+tune the solver (e.g. tebu tenure,...).</LI><LI CLASS="li-itemize">Define a set of functions needed by the solver (e.g. to compute the
+cost of a configuration). Some functions are optional meaning that the
+solver performs an implicit treatment in the absence of such a
+function. Most of the times, providing an optional function speeds up the
+execution.</LI><LI CLASS="li-itemize">Call the solver.</LI><LI CLASS="li-itemize">Exploit the data provided by the solver (the solution, various counters
+giving information about the resolutions).</LI></UL><P>To use the API a C file should include the header file
+<TT>ad_solver.h</TT>:</P><DL CLASS="list"><DT CLASS="dt-list">
+</DT><DD CLASS="dd-list"><TT>
+</TT><PRE CLASS="verbatim"><TT>#include "ad_solver.h"
+</TT></PRE></DD></DL><P>Obviously the C compiler must be invoked with the adequate option to ensure
+the header file can be found by the preprocessor.</P><P>At link time, the library called <TT>libad_solver.a</TT> must be
+passed. Here also, some options might have to be passed to the C compiler to
+allow the linker to locate the library.</P><P>If both the include file and the library are in the same directory as the
+user C file (for instance <TT>problem.c</TT>), then the following Unix command
+line (using gcc) suffices:</P><DL CLASS="list"><DT CLASS="dt-list">
+</DT><DD CLASS="dd-list"><TT>
+</TT><PRE CLASS="verbatim"><TT>gcc -o problem problem.c libad_solver.a
+</TT></PRE></DD></DL><P>If the include file is in <TT>/usr/adaptive/include</TT> and the library in
+<TT>/usr/adaptive/lib</TT>, a possible invocation could be:</P><DL CLASS="list"><DT CLASS="dt-list">
+</DT><DD CLASS="dd-list"><TT>
+</TT><PRE CLASS="verbatim"><TT>gcc -I/usr/adaptive/include -L/usr/adaptive/lib -o problem problem.c -lad_solver
+</TT></PRE></DD></DL><P>A structure (C type <TT>AdData</TT>) is used to communicate with the solver. Fields in this structure can be decomposed in: input or output data (or input-output). Input parameters are given to the solver and should be initialized before calling the solver. Output parameters are provided by the solver.</P><P>Please look at the header file for more information about the fields in the
+<TT>AdData</TT> type. We here detail the most important parameters.</P><!--TOC subsection Input parameters-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc5">3.2</A>&#XA0;&#XA0;Input parameters</H3><!--SEC END --><P>The following input variables control the basic data and have to be
+initialized before calling the resolution function.</P><UL CLASS="itemize"><LI CLASS="li-itemize"><TT>int size</TT>: size of the problem (number of variables).</LI><LI CLASS="li-itemize"><TT>int *sol</TT>: the array of variables. It is an output parameter
+but it can also be used to pass the initial configuration if <TT>int
+do_not_init</TT> is set.</LI><LI CLASS="li-itemize"><TT>int do_not_init</TT>: if set to true (a value != 0) the initial
+configuration used is the one present in <TT>sol</TT> (else a random configuration
+is computed).</LI><LI CLASS="li-itemize"><TT>int base_value</TT>: base offset for the domain of each variable
+(each vaiable can then take a value in
+<TT>base_value</TT>&#XA0;..&#XA0;<TT>base_value</TT> + <TT>size</TT>&#X2212;1. </LI><LI CLASS="li-itemize"><TT>int *actual_value</TT>: if not <TT>NULL</TT> it contains the array
+of values (domain) variables can take. If <TT>base_value</TT> is given, it
+is added to each value of <TT>actual_value</TT> to form the domain.</LI><LI CLASS="li-itemize"><TT>int break_nl</TT>: when the solver displays a solution a new
+line is inserted every <TT>break_nl</TT> values (0 if no break is
+wanted). This makes it possible to display matrix in a more readable form.</LI><LI CLASS="li-itemize"><TT>int debug</TT>: debug level (0: none, 1: trace, 2: interactive).
+This requires the library is compiled with debugging support (see INSTALL).</LI><LI CLASS="li-itemize"><TT>char *log_file</TT>: name of the log file (or <TT>NULL</TT>
+if none). This requires the library is compiled with log file support (see
+INSTALL).</LI></UL><P>The following input parameters make it possible to tune the solver and should
+be initialized before calling the resolution function.</P><UL CLASS="itemize"><LI CLASS="li-itemize">		<TT>int exhaustive</TT>: if true the solver always evaluate (the
+cost of) all possible swaps to chose the best swap. If false a projection of
+the error on each variable is used to first select the &#X201C;worst&#X201D; variable
+([<A HREF="#saga01">1</A>] for more information).</LI><LI CLASS="li-itemize"><TT>int first_best</TT>: when looking for the next configuration, the
+solver stops as soon as a better move is found (instead of continuing to
+find the best move).</LI><LI CLASS="li-itemize"><TT>int prob_select_loc_min</TT>: this is a percentage to force a
+local minimum (i.e. when the 2 selected variables to swap are the same)
+instead of staying on a plateau (a swap involves 2 different variables but
+the overall cost will remain the same). If a value &gt; 100 is given, this
+option is not used.</LI><LI CLASS="li-itemize"><TT>int freeze_loc_min</TT>: number of swaps a variable is frozen
+when a local minimum is encountered (i.e. the 2 variables to swap are the
+same).</LI><LI CLASS="li-itemize"><TT>int freeze_swap</TT>: number of swaps the 2 variables that have
+been selected (and thus swapped) to improve the solution are frozen.</LI><LI CLASS="li-itemize"><TT>int reset_limit</TT>: number of frozen varables before a reset
+is triggered.</LI><LI CLASS="li-itemize"><TT>int nb_var_to_reset</TT>: number of variables to randomly
+reset.</LI><LI CLASS="li-itemize"><TT>int restart_limit</TT>: maximum number of iterations before
+restarting from scratch (give a big number to avoid a restart).</LI><LI CLASS="li-itemize"><TT>int restart_max</TT>: maximal number of restarts to perform before
+giving up. To avoid a too long computation the parameters <TT>int
+restart_limit</TT> and <TT>int restart_max</TT> can be defined.</LI><LI CLASS="li-itemize"><TT>int reinit_after_if_swap</TT>: see the defintion of the user 
+function <TT>Cost_If_Swap()</TT> for more information.</LI></UL><!--TOC subsection Output parameters-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc6">3.3</A>&#XA0;&#XA0;Output parameters</H3><!--SEC END --><P>In addition to the array containing the solution, the solver maintains
+counters that can be consulted by the user to obtain some information about
+the resolution.</P><UL CLASS="itemize"><LI CLASS="li-itemize"><TT>int *sol</TT>: the current configuration. When the solver
+teminates, it normally contains a solution. If the solver has finished
+because it reached the maximum number of iterations and restarts, the
+<TT>sol</TT> array contains a pseudo-solution (an aprroximation of the
+solution).</LI><LI CLASS="li-itemize"><TT>int total_cost</TT>: cost of the current configuration (0 means a
+solution).</LI><LI CLASS="li-itemize"><TT>int nb_restart</TT>: number of restart performed.</LI><LI CLASS="li-itemize"><TT>int nb_iter</TT>, <TT>int nb_iter_tot</TT>: number of iterations performed in the current
+pass and across restarts.</LI><LI CLASS="li-itemize"><TT>int nb_swap</TT>, <TT>int nb_swap_tot</TT>: number of swaps performed.</LI><LI CLASS="li-itemize"><TT>int nb_same_var</TT>, <TT>int nb_same_var_tot</TT>: number of
+variables with (the same) highest cost.</LI><LI CLASS="li-itemize"><TT>int nb_reset</TT>, textttint nb_reset_tot: number of reset swaps performed.</LI><LI CLASS="li-itemize"><TT>int nb_local_min</TT>, <TT>int nb_local_min_tot</TT>: number of local minimum encountered.</LI></UL><!--TOC subsection Miscellaneous parameters-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc7">3.4</A>&#XA0;&#XA0;Miscellaneous parameters</H3><!--SEC END --><P>The following variables are not used by the solver. They simply convey values
+for the user. It is particularly useful for multithreading. It also contains
+some information related to the default <TT>main()</TT> function.</P><UL CLASS="itemize"><LI CLASS="li-itemize"><TT>int param</TT>: the parameter handled by the default <TT>main()</TT> function.</LI><LI CLASS="li-itemize"><TT>int seed</TT>: the seed set by a command-line option of the default <TT>main()</TT>
+function (or -1 if any). </LI><LI CLASS="li-itemize"><TT>int reset_percent</TT>: -1 or the % of variables to reset defined
+by a command-line option of the default <TT>main()</TT> function. If it is
+-1, the <TT>Init_Parameters()</TT> function should either set it to a
+percentage or directly set the <TT>nb_var_reset</TT> parameter.</LI><LI CLASS="li-itemize"><TT>int data32[4]</TT>: some values to store 32-bits user information.</LI><LI CLASS="li-itemize"><TT>int data64[42</TT>: some values to store 64-bits user information.</LI></UL><!--TOC subsection Functions-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc8">3.5</A>&#XA0;&#XA0;Functions</H3><!--SEC END --><P>Here is the set of functions provided by the library:</P><UL CLASS="itemize"><LI CLASS="li-itemize"><TT>int Ad_Solve(AdData *p_ad)</TT>: this function invokes the Adaptive solver
+to find a solution to the problem. This function calls in turn user
+functions (e.g. to compute the cost of a solution or to project this cost on
+a given variable). This function returns the <TT>total_cost</TT> at
+then end of the resolution (i.e. 0 if a solution has been found).</LI><LI CLASS="li-itemize"><TT>void Ad_Display(int *t, AdData *p_ad, unsigned *mark)</TT>: this function displays
+an array <TT>t</TT> (generally <TT>sol</TT>) and also displays a &#X2019;X&#X2019; for
+marked variables (if <TT>mark != NULL</TT>). This function is generally only 
+used by the solver.</LI></UL><!--TOC subsection User functions-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc9">3.6</A>&#XA0;&#XA0;User functions</H3><!--SEC END --><P>The function <TT>Ad_Solve()</TT> calls some user functions to guide its
+resolution. Some functions are MANDATORY while others are OPTIONAL. Here is
+the set of user functions:</P><UL CLASS="itemize"><LI CLASS="li-itemize"><TT>int Cost_Of_Solution(int should_be_recorded)</TT>: [MANDATORY]
+this function returns the cost of the current solution (the user code
+should keep a pointer to <TT>sol</TT> it needed). The argument
+<TT>should_be_recorded</TT> is passed by the solver, if true the solver
+will continue with this cost (so maybe the user code needs to register some
+information), if false the solver simply wants to know the cost of a
+possible move (but without electing it).</LI><LI CLASS="li-itemize"><TT>int Cost_On_Variable(int i)</TT>: [OPTIONAL] this function
+returns the projection of the current cost on the <TT>i</TT><I>th</I>
+variable (from 0 to <TT>size</TT>-1). If not present then the
+resolution must be exhausitive (see <TT>exhausitive</TT>).</LI><LI CLASS="li-itemize"><TT>int Cost_If_Swap(int current_cost, int i, int j)</TT>: [OPTIONAL]
+this function evaluates the cost of a swap (the swap is not performed and
+should not be performed by the function). Passed arguments are the cost of
+the solution, the indexes <TT>i</TT> and<TT>j</TT> of the 2 candidates for
+a swap.. If this function is not present a default function is used which:
+<UL CLASS="itemize"><LI CLASS="li-itemize">performs the swap, </LI><LI CLASS="li-itemize">calls <TT>Cost_Of_Solution()</TT>,</LI><LI CLASS="li-itemize">undoes the swap,</LI><LI CLASS="li-itemize">if the variable <TT>int reinit_after_if_swap</TT> is true
+then <TT>Cost_Of_Solution()</TT> is also called another time. This
+is useful if <TT>Cost_Of_Solution()</TT> updates some global
+information to ensure this information is reset.
+</LI></UL></LI><LI CLASS="li-itemize"><TT>void Executed_Swap(int i, int j)</TT>: [OPTIONAL] this function is
+called to inform the user code a swap has been done. This is useful if the
+user code maintains some global information.</LI><LI CLASS="li-itemize"><TT>int Next_I(int i)</TT>: [OPTIONAL] this function is called in case
+of an exhaustive search (see <TT>exhaustive</TT>). It is used to
+enumerate the first variable. This functions receives the current <TT>i</TT>
+(initially it is -1) and returns the next value (or something &gt;
+<TT>size</TT> at the end). In case this function is not defined,
+<TT>i</TT> takes the values 0&#XA0;..&#XA0;<TT>size</TT> &#X2212; 1.</LI><LI CLASS="li-itemize"><TT>int Next_J(int i, int j)</TT>: [OPTIONAL] this function is called
+in case of an exhaustive search (see <TT>exhaustive</TT>). It is used to
+enumerate the second variable. This functions receives the current
+<TT>i</TT> and the current <TT>j</TT> (for each new <TT>i</TT> it is -1) and
+returns the next value for <TT>j</TT> (or something &gt; <TT>size</TT> at
+the end). In case this function is not defined, <TT>j</TT> takes the values
+<TT>i</TT>+1&#XA0;..&#XA0;<TT>size</TT>&#X2212;1 for each new <TT>i</TT>.</LI><LI CLASS="li-itemize"><TT>void Display_Solution(AdData *p_ad)</TT>: [OPTIONAL] this
+function is called to display a solution (stored inside <TT>sol</TT>). This
+allows the user to customize the output (useful if modelisation of the
+problem needs a decoding to be understood). The default version simply
+displays the values in <TT>sol</TT>.</LI></UL><!--TOC section Other utility functions-->
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc10">4</A>&#XA0;&#XA0;Other utility functions</H2><!--SEC END --><P>To use this functions the user C code should include the file
+<TT>tools.h</TT>.</P><UL CLASS="itemize"><LI CLASS="li-itemize"><TT>long Real_Time(void)</TT>: returns the real elapsed time since the
+start of the process (wall time).</LI><LI CLASS="li-itemize"><TT>long User_Time(void)</TT>: returns the user time since the start
+of the process.</LI><LI CLASS="li-itemize"><TT>unsigned Randomize_Seed(unsigned seed)</TT>: intializes the
+random generator with a given <TT>seed</TT>.</LI><LI CLASS="li-itemize"><TT>unsigned Randomize(void)</TT>: randomly initilizes the random
+generator.</LI><LI CLASS="li-itemize"><TT>unsigned Random(unsigned n)</TT>: returns a random integer &gt;= 0 
+and &lt; <TT>n</TT>.</LI><LI CLASS="li-itemize"><TT>void Random_Permut(int *vec, int size, const int
+*actual_value, int base_value)</TT>: initializes the <TT>size</TT> elements
+of the vector <TT>vec</TT> with a random permutation. If
+<TT>actual_value</TT> is <TT>NULL</TT>, values are taken in
+<I>base</I>_<I>value</I>&#XA0;..&#XA0;<TT>size</TT>&#X2212;1+<I>base</I>_<I>value</I>. If <TT>actual_value</TT> is
+given, values are take from this array (each element of the array is added
+to <TT>base_value</TT> to form an element of the permutation).</LI><LI CLASS="li-itemize"><TT>int Random_Permut_Check(int *vec, int size, const int
+*actual_value, int base_value)</TT>: checks if the values of <TT>vec</TT>
+forms a valid permutation (returns true or false).</LI><LI CLASS="li-itemize"><TT>void Random_Permut_(int *vec, int size, const int
+*actual_value, int base_value)</TT>: repairs the permutation stored in
+<TT>vec</TT> so that it now contains a valid permutation (trying to keep
+untouched as much as possible good values).</LI></UL><!--TOC section Using the default <TT>main()</TT> function-->
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc11">5</A>&#XA0;&#XA0;Using the default <TT>main()</TT> function</H2><!--SEC END --><P>The user is obviously free to write his own <TT>main()</TT> function. In
+order to have a same command-line options for all bechmarks a default
+<TT>main()</TT> is included in the library (it is then used if no user
+<TT>main()</TT> is found at link-time). The default function act as follows:</P><UL CLASS="itemize"><LI CLASS="li-itemize">it parses the command-line to retrieve tuning options, the running mode
+(number of executions,...), and the parameter if it is expected (e.g. the
+chessboard size in the queens). NB: if a parameter is expected the variable
+<TT>param_needed</TT> must be declared and initialized to 1 in the user
+code. Each tuning option can be set via a command-line option and the
+corresponding variable (see input variables) is set. The only exception is
+for for <TT>nb_var_reset</TT> which can be specified indirectly as a
+percentage (instead of an absolute value) inside the variable
+<TT>reset_percent</TT>.</LI><LI CLASS="li-itemize">it invokes a user function <TT>void Init_Parameters(AdData *p_ad)</TT> which
+must initialises all input variables (e.g. <TT>size</TT>,
+allocate <TT>sol</TT>,...). This function should only initialises tuning variable
+that are not set via command-line options. In this case the value of the
+corresponding variable is -1. </LI><LI CLASS="li-itemize">it invokes the user defined <TT>void Solve(AdData *p_ad)</TT> function
+(which in turn should invoke the Adaptive solver <TT>Ad_Solve()</TT>.</LI><LI CLASS="li-itemize">it displays the result or a summary of the counters (in benchmark mode).</LI></UL><P>In addition to the variables described above, the following parameters
+are available when using the default <TT>main()</TT>:</P><UL CLASS="itemize"><LI CLASS="li-itemize"><TT>int param</TT>: the parameter (if <TT>param_needed</TT> is true).</LI><LI CLASS="li-itemize"><TT>int reset_percent</TT>: -1 or the % of variables to reset defined
+by a command-line option. If it is -1, the <TT>Initializations()</TT>
+function should either set it to a percentage or directly set
+<TT>nb_var_reset</TT>.</LI><LI CLASS="li-itemize"><TT>int seed</TT>: -1 or the seed defined by a command-line option. The
+<TT>main()</TT> function initialises the random number generator in both
+cases so the <TT>Initializations()</TT> does not need to do it.</LI></UL><P>The default default <TT>main()</TT> function needs an additional function to
+check the validity of a solution. The user must then provide a function
+<TT>int Check_Solution(AdData *p_ad)</TT> which returns 1 if the solution
+passed in <TT>p_ad</TT> is valid. A Simple definition for this function
+could be to simply test if the cost of the solution is 0 (not very precise as
+verification).</P><P>Please look at the examples for more details.</P><!--TOC section References-->
+<H2 CLASS="section"><!--SEC ANCHOR -->References</H2><!--SEC END --><DL CLASS="thebibliography"><DT CLASS="dt-thebibliography">
+<A NAME="saga01"><FONT COLOR=purple>[1]</FONT></A></DT><DD CLASS="dd-thebibliography">
+P. Codognet and D. Diaz.
+Yet Another Local Search Method for Constraint Solving.
+In <EM>Proc. SAGA01</EM>, 1st International Symposim on
+Stochastic Algorithms : Foundations and Applications,
+LNCS 2246, Springer Verlag 2001</DD></DL><!--CUT END -->
+<!--HTMLFOOT-->
+<!--ENDHTML-->
+<!--FOOTER-->
+<HR SIZE=2><BLOCKQUOTE CLASS="quote"><EM>This document was translated from L<sup>A</sup>T<sub>E</sub>X by
+<A HREF="http://hevea.inria.fr/index.html">H<FONT SIZE=2><sup>E</sup></FONT>V<FONT SIZE=2><sup>E</sup></FONT>A</A>.</EM></BLOCKQUOTE></BODY>
+</HTML>

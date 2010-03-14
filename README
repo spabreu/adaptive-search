@@ -1,0 +1,14 @@
+This is the Adaptive Search distribution.
+by Daniel Diaz & Philippe Codognet
+Copyright (C) 2002-2003 Daniel Diaz & Philippe Codognet
+
+
+The version number is inside the file VERSION.
+
+The file INSTALL gives some hints about the installation procedure.
+
+The system is released under the GPL license (see COPYING).
+
+The src/ sub-directory contains the source of the distribution.
+
+The doc/ sub-directory contains the user's manual in various formats.

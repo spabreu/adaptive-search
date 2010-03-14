@@ -1,0 +1,59 @@
+\usepackage{hevea}
+
+\newif\iflatex
+\newif\ifpdf
+
+\ifx\pdfoutput\undefined
+\pdffalse % we are not running PDFLaTeX
+\ifhevea
+\latexfalse % we are not running LaTeX
+\else
+\latextrue  % we are running LaTeX
+\fi
+\else
+\pdftrue % we are running PDFLaTeX
+\fi
+
+\ifpdf
+\usepackage[pdftex]{graphicx}
+\usepackage[pdftex=true]{hyperref}
+\else
+\usepackage{graphicx}
+\fi
+
+\newcommand{\InsertImage}[2][1]%
+   {\centerline{\fbox{{\includegraphics[scale=#1]{#2}}}}}
+%   {\begin{center}\fbox{\includegraphics[scale=#1]{#2}}\end{center}}
+
+\newcommand{\InsertImageNoBox}[2][1]%
+   {\centerline{\includegraphics[scale=#1]{#2}}}
+%   {\begin{center}\includegraphics[scale=#1]{#2}\end{center}}
+
+
+% Vertical space commands
+
+\def\BL{\vspace{\baselineskip}}
+\def\SkipUp{\vspace{-\multicolsep}}
+
+% URL
+
+\ifpdf
+\newcommand{\Tilde}[1]{~#1}
+\newcommand{\Underscore}{_}
+\newcommand{\MyUrl}[2]{\href{#1}{#2}}
+\newcommand{\MyUrlHtml}[2]{\href{#1}{#2}}
+\newcommand{\MyEMail}[2]{#2\footnote{\texttt{#1}}}
+\else
+\ifhevea
+\newcommand{\Tilde}[1]{\~{}#1}
+\newcommand{\Underscore}{\_}
+\newcommand{\MyUrl}[2]{\ahref{#1}{#2}}
+\newcommand{\MyUrlHtml}[2]{\ahref{#1}{#2}}
+\newcommand{\MyEMail}[2]{\@aelement{HREF="mailto:#1"}{#2}}
+\else
+\newcommand{\Tilde}[1]{\~{}#1}
+\newcommand{\Underscore}{\_}
+\newcommand{\MyUrl}[2]{\footahref{#1}{#2}}
+\newcommand{\MyUrlHtml}[2]{#2}
+\fi
+\fi

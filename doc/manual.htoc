@@ -1,0 +1,15 @@
+\begin{tocenv}
+\tocitem \@locref{htoc1}{\begin{@norefs}\@print{1}\quad{}Introduction{}\end{@norefs}}
+\tocitem \@locref{htoc2}{\begin{@norefs}\@print{2}\quad{}Installation{}\end{@norefs}}
+\tocitem \@locref{htoc3}{\begin{@norefs}\@print{3}\quad{}The Adaptive Search API{}\end{@norefs}}
+\begin{tocenv}
+\tocitem \@locref{htoc4}{\begin{@norefs}\@print{3.1}\quad{}Overall usage{}\end{@norefs}}
+\tocitem \@locref{htoc5}{\begin{@norefs}\@print{3.2}\quad{}Input parameters{}\end{@norefs}}
+\tocitem \@locref{htoc6}{\begin{@norefs}\@print{3.3}\quad{}Output parameters{}\end{@norefs}}
+\tocitem \@locref{htoc7}{\begin{@norefs}\@print{3.4}\quad{}Miscellaneous parameters{}\end{@norefs}}
+\tocitem \@locref{htoc8}{\begin{@norefs}\@print{3.5}\quad{}Functions{}\end{@norefs}}
+\tocitem \@locref{htoc9}{\begin{@norefs}\@print{3.6}\quad{}User functions{}\end{@norefs}}
+\end{tocenv}
+\tocitem \@locref{htoc10}{\begin{@norefs}\@print{4}\quad{}Other utility functions{}\end{@norefs}}
+\tocitem \@locref{htoc11}{\begin{@norefs}\@print{5}\quad{}Using the default \texttt{main()} function{}\end{@norefs}}
+\end{tocenv}

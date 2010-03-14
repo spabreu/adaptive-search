@@ -1,0 +1,137 @@
+CREATE TABLE run (
+       version text,
+       flags text,
+
+       bench text,
+       param int,
+       threads int,
+
+       restarts int,
+       time float,
+       iter int,
+       local_min int,
+       swaps int,
+       resets int,
+       same_var_by_iter int,
+       iter_tot int,
+       local_min_tot int,
+       swap_tot int,
+       reset_tot int,
+       same_var_by_iter_tot float);
+
+CREATE VIEW avg AS
+  SELECT version, flags, bench, param, threads, avg(time) AS avg FROM run
+  GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW min AS
+  SELECT version, flags, bench, param, threads, min(time) AS min FROM run
+  GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW max AS
+  SELECT version, flags, bench, param, threads, max(time) AS max FROM run
+  GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW delta AS
+  SELECT a.version AS version, a.flags AS flags, 
+         a.bench AS bench, a.param AS param, a.threads AS threads,
+         (r.time-a.avg)*(r.time-a.avg) AS delta
+    FROM avg a, run r
+    WHERE r.version = a.version AND r.flags = a.flags AND
+          r.bench=a.bench AND r.param=a.param AND r.threads=a.threads;
+
+
+-- this one gives the variance
+
+CREATE VIEW var AS
+  SELECT version, flags, bench, param, threads, avg(delta) AS var
+    FROM delta GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW stats AS
+  SELECT a.version AS version, a.flags AS flags,
+         a.bench AS bench, a.param AS param, a.threads AS threads,
+         a.avg AS avg, i.min AS min, m.max AS max, v.var AS var
+    FROM avg a NATURAL JOIN var v NATURAL JOIN min i NATURAL JOIN max m;
+
+
+-- this one gives the speedup
+-- no that we omit:
+--                              AND flags=a.flags
+-- to allow for -I benchmarks to be performed w/o a base case (we use the
+-- regular run...)
+
+CREATE VIEW speedup AS
+  SELECT a.version AS version, a.flags AS flags, 
+         a.bench AS bench, a.param AS param, a.threads AS threads,
+         (SELECT avg FROM avg WHERE version=a.version
+                                AND bench=a.bench
+                                AND param=a.param
+                                AND threads=1) / a.avg AS speedup
+    FROM avg a;
+
+
+-- == identical stuff but based on iter_tot instead of time: ==
+
+CREATE VIEW avg_i AS
+  SELECT version, flags, bench, param, threads, avg(iter_tot) AS avg FROM run
+  GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW min_i AS
+  SELECT version, flags, bench, param, threads, min(iter_tot) AS min FROM run
+  GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW max_i AS
+  SELECT version, flags, bench, param, threads, max(iter_tot) AS max FROM run
+  GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW delta_i AS
+  SELECT a.version AS version, a.flags AS flags, 
+         a.bench AS bench, a.param AS param, a.threads AS threads,
+         (r.iter_tot-a.avg)*(r.iter_tot-a.avg) AS delta
+    FROM avg_i a, run r
+    WHERE r.version = a.version AND r.flags = a.flags AND
+          r.bench=a.bench AND r.param=a.param AND r.threads=a.threads;
+
+
+-- this one gives the variance
+
+CREATE VIEW var_i AS
+  SELECT version, flags, bench, param, threads, avg(delta) AS var
+    FROM delta_i GROUP BY version, flags, bench, param, threads;
+
+CREATE VIEW stats_i AS
+  SELECT a.version AS version, a.flags AS flags,
+         a.bench AS bench, a.param AS param, a.threads AS threads,
+         a.avg AS avg, i.min AS min, m.max AS max, v.var AS var
+    FROM avg_i a NATURAL JOIN var_i v NATURAL JOIN min_i i NATURAL JOIN max_i m;
+
+
+-- this one gives the speedup
+-- no that we omit:
+--                              AND flags=a.flags
+-- to allow for -I benchmarks to be performed w/o a base case (we use the
+-- regular run...)
+
+CREATE VIEW speedup_i AS
+  SELECT a.version AS version, a.flags AS flags, 
+         a.bench AS bench, a.param AS param, a.threads AS threads,
+         (SELECT avg FROM avg_i WHERE version=a.version
+                                  AND bench=a.bench
+                                  AND param=a.param
+                                  AND threads=1) / a.avg AS speedup
+    FROM avg_i a;
+
+
+
+
+-- now for some indices to speed queries a bit...
+
+CREATE INDEX vfbpt ON run (version, flags, bench, param, threads);
+CREATE INDEX vfbp  ON run (version, flags, bench, param);
+
+-- a view to find out the latest version of a given benchmark
+
+CREATE VIEW latest AS
+  SELECT max(version) AS version, flags, bench
+    FROM run GROUP BY flags, bench;
+
+

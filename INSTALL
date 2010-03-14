@@ -1,0 +1,48 @@
+The system has been developed under a Linux system with gcc and should
+compile on any Linux systems. More gnerally it should compile under most Unix
+systems.
+
+Go to the src/ sub-directory.
+
+Modify the Makefile if needed (mainly the CFLAGS options)
+
+  if you want to compile a version with debug support define the DEBUG macro
+   (e.g. pass -DDEBUG to gcc)
+
+  If you want to compile with log file support define the LOG_FILE macro
+
+  For best performances use -fomit-frame-pointer -O3 under gcc.
+
+  Several lines are present in the Makefile as comments. Uncomment the one you
+  need.
+
+To  compile locally use:
+
+% make
+
+By default the Makefile also compiles all benchmarks. But you can use:
+
+% make <bench> to only compile a give benchamrk
+
+or 
+
+% make libad_solver.a to only compile the library
+
+
+If you want to install the library in another location, you need to copy in
+the target location the following files:
+
+ - header files: ad_solver.h main.h tools.h
+ - libraries: libad_solver.a 
+
+To clean the result of the local compilation use:
+
+% make clean
+
+To re-create a source distributio use:
+
+% make dist
+
+If you need to change the version number modify the file ../VERSION
+
+

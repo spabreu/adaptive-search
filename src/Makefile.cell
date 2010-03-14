@@ -1,0 +1,41 @@
+CELL_TOP = $(HOME)/cell/sdk
+
+DIRS := spu
+
+BENCHES = $(EXECS)
+COMM = -UCELL_COMM
+
+
+DEBUG = 0
+BENCH = partit
+
+PROGRAM_ppu := 	$(BENCH)
+IMPORTS = spu/$(BENCH).a -lspe2 -lpthread
+
+CC_OPT_LEVEL = -g
+
+CFLAGS += -DBENCH_SPU=$(BENCH)
+CFLAGS += $(COMM)
+CFLAGS += -DCELL=1 -DAS_PPU=1 -UAS_SPU
+CFLAGS += -DDEBUG=$(DEBUG)
+CFLAGS += -Wno-unused-parameter
+
+SYS_LIBS = libdefaults.a
+OBJS = main.o ppu.o $(BENCH).o $(BENCH)-spu-thread.o
+
+
+include $(CELL_TOP)/buildutils/make.footer
+
+
+$(BENCH)-spu-thread.c: Makefile.cell
+	echo "#include <libspe2.h>" > $@
+	echo "extern spe_program_handle_t $(subst -,_,$(BENCH));" >> $@
+	echo "spe_program_handle_t *bench_spu = &$(subst -,_,$(BENCH));" >> $@
+
+NO_DEFAULTS = $(wildcard no_*.c)
+
+DEFAULTS = $(NO_DEFAULTS) ad_solver.c tools.c
+DEFAULTS_o := $(DEFAULTS:.c=.o)
+
+libdefaults.a: $(DEFAULTS_o)
+	$(AR) -qcs $@ $(DEFAULTS_o)

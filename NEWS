@@ -1,0 +1,11 @@
+kChange in version 1.0.0
+
+* changes in the API
+* support for the Cell/BE
+* improve benchmarks
+* add new banchmark: perfect-square
+
+
+Change in version 0.9.0
+
+* initial release

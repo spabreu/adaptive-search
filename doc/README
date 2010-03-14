@@ -1,0 +1,30 @@
+The directory contains the Adaptive search manual. The source is availabe
+and also various versions: PostScript, PDF, HTML.
+
+An on-line HTML version is also available at 
+http://pauilla.inria.fr/~diaz/adaptive/manual
+
+Use:
+
+% make
+
+to recreate all versions
+
+You need:
+
+   - LaTeX2e (with standard packages) is needed to rebuild the DVI version.
+   - dvips is needed to rebuild the PostScript version from the DVI.
+   - pdflatex is needed to rebuild the PDF version.
+   - HeVeA (version >= 1.06) is required to rebuild the HTML version.
+     HeVeA can be obtained at http://pauillac.inria.fr/~maranget/hevea/
+
+
+To remove all compiled versions use:
+
+% make clean
+
+
+
+
+
+

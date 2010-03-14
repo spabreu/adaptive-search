@@ -1,0 +1,53 @@
+#! /bin/bash
+
+SQL=sqlite3
+DB=benchmarks.db
+SQLFLAGS="-separator ' '"
+CMD="$SQL $SQLFLAGS $DB"
+
+[ -z "$BENCHES" ] && \
+  BENCHES=`$SQL $DB "select distinct bench from run"`
+
+for BENCH in $BENCHES; do
+  if [ -z "$PARAMS" ]; then
+    PARS=`$SQL $DB "select distinct param from run where bench='$BENCH'"`
+  else
+    PARS=$PARAMS
+  fi
+  for PAR in $PARS; do
+      FROM="from run natural join latest where bench=\"$BENCH\""
+      MAX=`$SQL $DB "select max(max) from max natural join latest where bench='$BENCH' and param=$PAR"`
+      ( if [ ! -z "SVG" ]; then
+	  ( echo "set term svg"; cat ) | gnuplot > PLOT/$BENCH-$PAR.svg
+	else
+	  gnuplot
+	fi ) <<EOF
+set title "$BENCH $PAR"
+plot [0:17] \
+  "<$CMD 'select threads, speedup/16.0*$MAX from speedup natural join latest\
+              where bench=\"$BENCH\" \
+                and flags=\"$FLAGS\" \
+                and param=$PAR'" title "speedup" with linespoints, \
+  "<$CMD 'select threads, threads/16.0*$MAX from run natural join latest\
+              where bench=\"$BENCH\" \
+                and flags=\"$FLAGS\" \
+                and param=$PAR'" title "linear" with line, \
+  "<$CMD 'select threads,time from run natural join latest\
+              where bench=\"$BENCH\" \
+                and flags=\"$FLAGS\" \
+                and param=$PAR'" title "time", \
+  "<$CMD 'select threads,avg from stats natural join latest\
+              where bench=\"$BENCH\" \
+                and flags=\"$FLAGS\" \
+		and param=$PAR'" title "avg" with line, \
+  "<$CMD 'select threads,min from stats natural join latest\
+              where bench=\"$BENCH\" \
+	        and flags=\"$FLAGS\" \
+		and param=$PAR'" title "min" with line, \
+  "<$CMD 'select threads,max from stats natural join latest \
+              where bench=\"$BENCH\" \
+	        and flags=\"$FLAGS\" \
+	        and param=$PAR'" title "max" with line
+EOF
+  done
+done

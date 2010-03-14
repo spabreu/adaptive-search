@@ -1,0 +1,452 @@
+\documentclass{article}
+
+\usepackage{fancyheadings}
+
+% General environments
+
+\newenvironment{Indentation}%
+   {\begin{list}{}{}%
+      \item }%
+   {\end{list}}
+
+\newenvironment{Code}%
+   {\begin{Indentation}\begin{tt}}%
+   {\end{tt}\end{Indentation}}
+
+\newenvironment{VCode}%
+   {\begin{Indentation}\begin{verbatim}}%
+   {\end{verbatim}\end{Indentation}}
+
+\begin{document}
+
+\input{cover}
+
+\section{Introduction}
+
+The Adaptive Search library provides a set of functions to solve CSPs by a
+local search method. For more information consult \cite{saga01} The current
+release only works for problems that can be stated as permutation
+problems. More precisely, all $n$ variables have a same domain $x_1~..~x_n$
+and are subject to an implicit \textit{all-different} constraint. Several
+problems fall into this category and some examples are provided with the
+library.
+
+\section{Installation}
+
+Please refer to the file called \texttt{INSTALL} located in the src subdirectory.
+
+\section{The Adaptive Search API}
+
+\subsection{Overall usage}
+
+The typical use of the API is as follows:
+
+\begin{itemize}
+
+\item Initialize a structure with the input data needed by the solver. This
+  includes problem data (e.g. size, domain,...) together with parameters to
+  tune the solver (e.g. tebu tenure,...).
+
+\item Define a set of functions needed by the solver (e.g. to compute the
+  cost of a configuration). Some functions are optional meaning that the
+  solver performs an implicit treatment in the absence of such a
+  function. Most of the times, providing an optional function speeds up the
+  execution.
+
+\item Call the solver.
+
+\item Exploit the data provided by the solver (the solution, various counters
+  giving information about the resolutions).
+
+\end{itemize}
+
+
+To use the API a C file should include the header file
+\texttt{ad\_solver.h}:
+
+\begin{Code}
+\begin{verbatim}
+#include "ad_solver.h"
+\end{verbatim}
+\end{Code}
+
+Obviously the C compiler must be invoked with the adequate option to ensure
+the header file can be found by the preprocessor.
+
+At link time, the library called \texttt{libad\_solver.a} must be
+passed. Here also, some options might have to be passed to the C compiler to
+allow the linker to locate the library.
+
+If both the include file and the library are in the same directory as the
+user C file (for instance \texttt{problem.c}), then the following Unix command
+line (using gcc) suffices:
+
+\begin{Code}
+\begin{verbatim}
+gcc -o problem problem.c libad_solver.a
+\end{verbatim}
+\end{Code}
+
+If the include file is in \texttt{/usr/adaptive/include} and the library in
+ \texttt{/usr/adaptive/lib}, a possible invocation could be:
+
+\begin{Code}
+\begin{verbatim}
+gcc -I/usr/adaptive/include -L/usr/adaptive/lib -o problem problem.c -lad_solver
+\end{verbatim}
+\end{Code}
+
+A structure (C type  \texttt{AdData}) is used to communicate with the solver. Fields in this structure can be decomposed in: input or output data (or input-output). Input parameters are given to the solver and should be initialized before calling the solver. Output parameters are provided by the solver.
+
+Please look at the header file for more information about the fields in the
+\texttt{AdData} type. We here detail the most important parameters.
+
+
+
+
+\subsection{Input parameters}
+
+The following input variables control the basic data and have to be
+initialized before calling the resolution function.
+
+\begin{itemize}
+
+\item \texttt{int size}: size of the problem (number of variables).
+
+\item \texttt{int *sol}: the array of variables. It is an output parameter
+  but it can also be used to pass the initial configuration if \texttt{int
+    do\_not\_init} is set.
+
+\item \texttt{int do\_not\_init}: if set to true (a value != 0) the initial
+ configuration used is the one present in \texttt{sol} (else a random configuration
+ is computed).
+
+\item \texttt{int base\_value}: base offset for the domain of each variable
+ (each vaiable can then take a value in
+ $\texttt{base\_value}~..~\texttt{base\_value} + \texttt{size}-1$. 
+
+\item \texttt{int *actual\_value}: if not \texttt{NULL} it contains the array
+  of values (domain) variables can take. If \texttt{base\_value} is given, it
+  is added to each value of \texttt{actual\_value} to form the domain.
+
+\item \texttt{int break\_nl}: when the solver displays a solution a new
+ line is inserted every \texttt{break\_nl} values (0 if no break is
+ wanted). This makes it possible to display matrix in a more readable form.
+
+\item \texttt{int debug}: debug level (0: none, 1: trace, 2: interactive).
+ This requires the library is compiled with debugging support (see INSTALL).
+
+\item \texttt{char *log\_file}: name of the log file (or \texttt{NULL}
+ if none).  This requires the library is compiled with log file support (see
+ INSTALL).
+
+\end{itemize}
+
+The following input parameters make it possible to tune the solver and should
+be initialized before calling the resolution function.
+
+\begin{itemize}		
+
+\item \texttt{int exhaustive}: if true the solver always evaluate (the
+ cost of) all possible swaps to chose the best swap. If false a projection of
+ the error on each variable is used to first select the ``worst'' variable
+ (\cite{saga01} for more information).
+
+\item \texttt{int first\_best}: when looking for the next configuration, the
+  solver stops as soon as a better move is found (instead of continuing to
+  find the best move).
+
+\item \texttt{int prob\_select\_loc\_min}: this is a percentage to force a
+ local minimum (i.e. when the 2 selected variables to swap are the same)
+ instead of staying on a plateau (a swap involves 2 different variables but
+ the overall cost will remain the same). If a value $>$ 100 is given, this
+ option is not used.
+
+\item \texttt{int freeze\_loc\_min}: number of swaps a variable is frozen
+ when a local minimum is encountered (i.e. the 2 variables to swap are the
+ same).
+
+\item \texttt{int freeze\_swap}: number of swaps the 2 variables that have
+ been selected (and thus swapped) to improve the solution are frozen.
+
+\item \texttt{int reset\_limit}: number of frozen varables before a reset
+ is triggered.
+
+\item \texttt{int nb\_var\_to\_reset}: number of variables to randomly
+ reset.
+
+\item \texttt{int restart\_limit}: maximum number of iterations before
+ restarting from scratch (give a big number to avoid a restart).
+
+\item \texttt{int restart\_max}: maximal number of restarts to perform before
+  giving up. To avoid a too long computation the parameters \texttt{int
+    restart\_limit} and \texttt{int restart\_max} can be defined.
+
+\item \texttt{int reinit\_after\_if\_swap}: see the defintion of the user 
+ function \texttt{Cost\_If\_Swap()} for more information.
+
+\end{itemize}
+
+\subsection{Output parameters}
+
+In addition to the array containing the solution, the solver maintains
+counters that can be consulted by the user to obtain some information about
+the resolution.
+
+\begin{itemize}
+
+\item \texttt{int *sol}: the current configuration. When the solver
+  teminates, it normally contains a solution. If the solver has finished
+  because it reached the maximum number of iterations and restarts, the
+  \texttt{sol} array contains a pseudo-solution (an aprroximation of the
+  solution).
+
+\item \texttt{int total\_cost}: cost of the current configuration (0 means a
+  solution).
+
+\item \texttt{int nb\_restart}: number of restart performed.
+
+\item \texttt{int nb\_iter}, \texttt{int nb\_iter\_tot}: number of iterations performed in the current
+  pass and across restarts.
+
+\item \texttt{int nb\_swap}, \texttt{int nb\_swap\_tot}: number of swaps performed.
+
+\item \texttt{int nb\_same\_var}, \texttt{int nb\_same\_var\_tot}: number of
+  variables with (the same) highest cost.
+
+\item \texttt{int nb\_reset}, texttt{int nb\_reset\_tot}: number of reset swaps performed.
+
+\item \texttt{int nb\_local\_min}, \texttt{int nb\_local\_min\_tot}: number of local minimum encountered.
+
+\end{itemize}
+
+
+\subsection{Miscellaneous parameters}
+
+The following variables are not used by the solver. They simply convey values
+for the user. It is particularly useful for multithreading. It also contains
+some information related to the default \texttt{main()} function.
+
+\begin{itemize}
+
+\item \texttt{int param}: the parameter handled by the default \texttt{main()} function.
+
+\item \texttt{int seed}: the seed set by a command-line option of the default \texttt{main()}
+  function (or -1 if any). 
+
+\item \texttt{int reset\_percent}: -1 or the \% of variables to reset defined
+  by a command-line option of the default \texttt{main()} function.  If it is
+  -1, the \texttt{Init\_Parameters()} function should either set it to a
+  percentage or directly set the \texttt{nb\_var\_reset} parameter.
+ 
+\item \texttt{int data32[4]}: some values to store 32-bits user information.
+
+\item \texttt{int data64[42}: some values to store 64-bits user information.
+
+\end{itemize}
+
+
+\subsection{Functions}
+
+Here is the set of functions provided by the library:
+
+\begin{itemize}
+
+\item \texttt{int Ad\_Solve(AdData *p\_ad)}: this function invokes the Adaptive solver
+ to find a solution to the problem. This function calls in turn user
+ functions (e.g. to compute the cost of a solution or to project this cost on
+ a given variable). This function returns the \texttt{total\_cost} at
+ then end of the resolution (i.e. 0 if a solution has been found).
+
+\item \texttt{void Ad\_Display(int *t, AdData *p\_ad, unsigned *mark)}: this function displays
+ an array \texttt{t} (generally \texttt{sol}) and also displays a 'X' for
+ marked variables (if \texttt{mark != NULL}). This function is generally only 
+ used by the solver.
+
+\end{itemize}
+
+
+\subsection{User functions}
+
+The function \texttt{Ad\_Solve()} calls some user functions to guide its
+resolution. Some functions are MANDATORY while others are OPTIONAL. Here is
+the set of user functions:
+
+\begin{itemize}
+
+\item \texttt{int Cost\_Of\_Solution(int should\_be\_recorded)}: [MANDATORY]
+  this function returns the cost of the current solution (the user code
+  should keep a pointer to \texttt{sol} it needed). The argument
+  \texttt{should\_be\_recorded} is passed by the solver, if true the solver
+  will continue with this cost (so maybe the user code needs to register some
+  information), if false the solver simply wants to know the cost of a
+  possible move (but without electing it).
+
+\item \texttt{int Cost\_On\_Variable(int i)}: [OPTIONAL] this function
+ returns the projection of the current cost on the \texttt{i}\textit{th}
+ variable (from 0 to \texttt{size}-1). If not present then the
+ resolution must be exhausitive (see \texttt{exhausitive}).
+
+\item \texttt{int Cost\_If\_Swap(int current\_cost, int i, int j)}: [OPTIONAL]
+  this function evaluates the cost of a swap (the swap is not performed and
+  should not be performed by the function). Passed arguments are the cost of
+  the solution, the indexes \texttt{i} and\texttt{j} of the 2 candidates for
+  a swap.. If this function is not present a default function is used which:
+ \begin{itemize}
+
+   \item performs the swap, 
+
+   \item calls \texttt{Cost\_Of\_Solution()},
+
+   \item undoes the swap,
+
+   \item if the variable \texttt{int reinit\_after\_if\_swap} is true
+         then \texttt{Cost\_Of\_Solution()} is also called another time. This
+         is useful if \texttt{Cost\_Of\_Solution()} updates some global
+         information to ensure this information is reset.
+ \end{itemize}
+
+\item \texttt{void Executed\_Swap(int i, int j)}: [OPTIONAL] this function is
+ called to inform the user code a swap has been done. This is useful if the
+ user code maintains some global information.
+
+\item \texttt{int Next\_I(int i)}: [OPTIONAL] this function is called in case
+ of an exhaustive search (see \texttt{exhaustive}). It is used to
+ enumerate the first variable. This functions receives the current \texttt{i}
+ (initially it is -1) and returns the next value (or something $>$
+ \texttt{size} at the end). In case this function is not defined,
+ \texttt{i} takes the values $0~..~\texttt{size} - 1$.
+
+\item \texttt{int Next\_J(int i, int j)}: [OPTIONAL] this function is called
+ in case of an exhaustive search (see \texttt{exhaustive}). It is used to
+ enumerate the second variable. This functions receives the current
+ \texttt{i} and the current \texttt{j} (for each new \texttt{i} it is -1) and
+ returns the next value for \texttt{j} (or something $>$ \texttt{size} at
+ the end). In case this function is not defined, \texttt{j} takes the values
+ $\texttt{i}+1~..~\texttt{size}-1$ for each new $\texttt{i}$.
+
+\item \texttt{void Display\_Solution(AdData *p\_ad)}: [OPTIONAL] this
+  function is called to display a solution (stored inside \texttt{sol}). This
+  allows the user to customize the output (useful if modelisation of the
+  problem needs a decoding to be understood). The default version simply
+  displays the values in \texttt{sol}.
+
+\end{itemize}
+
+\section{Other utility functions}
+
+To use this functions the user C code should include the file
+\texttt{tools.h}.
+
+\begin{itemize}
+
+\item \texttt{long Real\_Time(void)}: returns the real elapsed time since the
+  start of the process (wall time).
+
+\item \texttt{long User\_Time(void)}: returns the user time since the start
+ of the process.
+
+\item \texttt{unsigned Randomize\_Seed(unsigned seed)}: intializes the
+ random generator with a given \texttt{seed}.
+
+\item \texttt{unsigned Randomize(void)}: randomly initilizes the random
+ generator.
+
+\item \texttt{unsigned Random(unsigned n)}: returns a random integer $>= 0$ 
+ and  $< \texttt{n}$.
+
+\item \texttt{void Random\_Permut(int *vec, int size, const int
+    *actual\_value, int base\_value)}: initializes the \texttt{size} elements
+  of the vector \texttt{vec} with a random permutation. If
+  \texttt{actual\_value} is \texttt{NULL}, values are taken in
+  $base\_value~..~\texttt{size}-1+base\_value$. If \texttt{actual\_value} is
+  given, values are take from this array (each element of the array is added
+  to \texttt{base\_value} to form an element of the permutation).
+
+\item \texttt{int Random\_Permut\_Check(int *vec, int size, const int
+    *actual\_value, int base\_value)}: checks if the values of \texttt{vec}
+  forms a valid permutation (returns true or false).
+
+\item \texttt{void Random\_Permut\_(int *vec, int size, const int
+    *actual\_value, int base\_value)}: repairs the permutation stored in
+  \texttt{vec} so that it now contains a valid permutation (trying to keep
+  untouched as much as possible good values).
+
+
+\end{itemize}
+
+
+\section{Using the default \texttt{main()} function}
+
+The user is obviously free to write his own \texttt{main()} function. In
+order to have a same command-line options for all bechmarks a default
+\texttt{main()} is included in the library (it is then used if no user
+\texttt{main()} is found at link-time). The default function act as follows:
+
+\begin{itemize}
+
+\item it parses the command-line to retrieve tuning options, the running mode
+  (number of executions,...), and the parameter if it is expected (e.g. the
+  chessboard size in the queens). NB: if a parameter is expected the variable
+  \texttt{param\_needed} must be declared and initialized to 1 in the user
+  code.  Each tuning option can be set via a command-line option and the
+  corresponding variable (see input variables) is set. The only exception is
+  for for \texttt{nb\_var\_reset} which can be specified indirectly as a
+  percentage (instead of an absolute value) inside the variable
+  \texttt{reset\_percent}.
+
+\item it invokes a user function \texttt{void Init\_Parameters(AdData *p\_ad)} which
+ must initialises all input variables (e.g. \texttt{size},
+ allocate \texttt{sol},...). This function should only initialises tuning variable
+ that are not set via command-line options. In this case the value of the
+ corresponding variable is -1. 
+
+\item it invokes the user defined \texttt{void Solve(AdData *p\_ad)} function
+  (which in turn should invoke the Adaptive solver \texttt{Ad\_Solve()}.
+
+\item it displays the result or a summary of the counters (in benchmark mode).
+
+\end{itemize}
+
+
+In addition to the variables described above, the following parameters
+are available when using the default \texttt{main()}:
+
+\begin{itemize}
+
+\item \texttt{int param}: the parameter (if \texttt{param\_needed} is true).
+
+\item \texttt{int reset\_percent}: -1 or the \% of variables to reset defined
+ by a command-line option.  If it is -1, the \texttt{Initializations()}
+ function should either set it to a percentage or directly set
+ \texttt{nb\_var\_reset}.
+
+\item \texttt{int seed}: -1 or the seed defined by a command-line option. The
+ \texttt{main()} function initialises the random number generator in both
+ cases so the \texttt{Initializations()} does not need to do it.
+
+\end{itemize}
+
+The default default \texttt{main()} function needs an additional function to
+check the validity of a solution. The user must then provide a function
+\texttt{int Check\_Solution(AdData *p\_ad)} which returns 1 if the solution
+passed in \texttt{p\_ad} is valid. A Simple definition for this function
+could be to simply test if the cost of the solution is 0 (not very precise as
+verification).
+
+Please look at the examples for more details.
+
+
+
+\begin{thebibliography}{99}
+
+\bibitem{saga01}
+\newblock P. Codognet and D. Diaz.
+\newblock Yet Another Local Search Method for Constraint Solving.
+\newblock In {\em Proc. SAGA01}, 1st International Symposim on
+Stochastic Algorithms : Foundations and Applications,
+\newblock LNCS 2246, Springer Verlag 2001
+
+\end{thebibliography}
+
+\end{document}

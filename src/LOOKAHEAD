@@ -1,0 +1,22 @@
+interval -b 10 30 -s 1821  -l 2   
+
+
+good params for partit
+partit 1024 -b 10 -f 1  -l 0 -p 1 -s 16721
+
+
+30
+magic_square  -b 10 30 -c -P 6 -f 8 -l 30
+magic_square  -b 10 30 -c -P 6 -f 10 -l 60
+
+40
+magic_square  -b 10 40 -c -P 6 -f 8 -l 40
+magic_square  -b 10 40 -c -P 7 -f 8 -l 40
+magic_square  -b 10 40 -c -P 6 -f 8 -l 40 -p 15
+magic_square  -b 10 40 -c -P 6 -f 8 -l 40 -p 5 
+magic_square  -b 10 40 -c -P 6  -L foo -f 8 -l 40 -p 3
+magic_square  -b 10 40 -c -P 6  -L foo -f 8 -l 20 -p 3
+magic_square  -b 10 40 -c -P 6  -L foo -f 8 -l 15 -p 3
+
+50
+magic_square  -b 10 50 -c -P 6 -f 8 -l 20 -p 3

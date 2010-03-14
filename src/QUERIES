@@ -1,0 +1,49 @@
+#! /bin/bash
+
+SQL=sqlite3
+DB=benchmarks.db
+
+PFX=STATS
+LAST=`ls $PFX/* 2>/dev/null | sort -n | tail -1 | \
+      sed -e "s/^.*-//" -e "s/.txt//"`
+[ -z "$LAST" ] && LAST=0
+
+RUN=$[$LAST+1]
+
+while read CODE; do
+    while [ -z "$CODE" ]; do read CODE || exit 1; done
+    read QUERY
+    echo -n "running $CODE query onto $PFX/$CODE-$RUN.txt..."
+#    echo "query $QUERY"
+    ( echo ".headers on"
+      echo ".separator \"\t\""
+      echo "$QUERY" ) | $SQL $DB > $PFX/$CODE-$RUN.txt
+    echo " done."
+done <<EOF
+
+SPEEDUP
+SELECT * FROM speedup NATURAL JOIN latest WHERE flags="" ORDER BY bench;
+
+STATS
+SELECT * FROM stats NATURAL JOIN latest WHERE flags="" ORDER BY bench;
+
+SPEEDUP-INIT
+SELECT * FROM speedup NATURAL JOIN latest WHERE flags="-I" ORDER BY bench;
+
+STATS-INIT
+SELECT * FROM stats NATURAL JOIN latest WHERE flags="-I" ORDER BY bench;
+
+SPEEDUP-ITERS
+SELECT * FROM speedup_i NATURAL JOIN latest WHERE flags="" ORDER BY bench;
+
+STATS-ITERS
+SELECT * FROM stats_i NATURAL JOIN latest WHERE flags="" ORDER BY bench;
+
+SPEEDUP-ITERS-INIT
+SELECT * FROM speedup_i NATURAL JOIN latest WHERE flags="-I" ORDER BY bench;
+
+STATS-ITERS-INIT
+SELECT * FROM stats_i NATURAL JOIN latest WHERE flags="-I" ORDER BY bench;
+
+EOF
+

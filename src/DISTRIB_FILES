@@ -1,0 +1,17 @@
+README
+INSTALL
+COPYING
+VERSION
+NEWS
+src/DISTRIB_FILES
+src/Makefile
+src/[a-z][a-z]*.[ch]
+doc/README
+doc/Makefile
+doc/do_latex
+doc/[a-z][a-z]*.tex
+doc/[a-z][a-z]*.sty
+doc/[a-z][a-z]*.pdf
+doc/[a-z][a-z]*.ps
+doc/[a-z][a-z]*.html
+spu/Makefile
