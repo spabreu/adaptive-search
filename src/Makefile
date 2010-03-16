@@ -31,7 +31,9 @@ OBJLIB = ad_solver.o tools.o main.o \
 	 no_cost_var.o no_exec_swap.o no_cost_swap.o \
 	 no_next_i.o no_next_j.o no_displ_sol.o
 
-LIBNAME=libad_solver.aEXECS=magic-square queens alpha all-interval partit langford perfect-square
+LIBNAME=libad_solver.a
+
+EXECS=magic-square queens alpha all-interval partit langford perfect-square
 
 %: %.c $(LIBNAME)
 	$(CC) -o $@ $(CFLAGS) $< $(LIBNAME)
