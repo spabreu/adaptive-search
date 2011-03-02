@@ -1,32 +1,28 @@
+
 /*
  *  Adaptive search
  *
- *  Copyright (C) 2002-2010 Daniel Diaz, Philippe Codognet and Salvador Abreu
+ *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
  *
  *  tools.c: utilities
  */
 
-#if defined(CELL) && !defined(AS_SPU)
-# define HAVE_FTIME
-#else
-# undef HAVE_FTIME
-#endif
 
-#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#ifdef HAVE_FTIME
-#include <sys/timeb.h>
-#endif
-
 #if defined(__unix__) || defined(__CYGWIN__)
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/types.h>
 #endif
 
 
 #include "tools.h"
+#include "stdlib.h"                        /* random() */
 
 /*-----------*
  * Constants *
@@ -65,21 +61,21 @@ User_Time(void)
   user_time = (rsr_usage.ru_utime.tv_sec * 1000) +
     (rsr_usage.ru_utime.tv_usec / 1000);
 
-#elif defined(M_ix86_cygwin)	/* does not work well, returns real_time */
+#elif defined(__CYGWIN__)	/* does not work well, returns real_time */
 
   struct tms time_buf1;
 
   times(&time_buf1);
   user_time = time_buf1.tms_utime * 1000 / tps;
 
-#elif defined(M_ix86_win32)
+#elif defined(_WIN32)
 
   user_time = (long) ((double) clock() * 1000 / CLOCKS_PER_SEC);
 
 #else
 
   user_time = 0;
-#warning user_time not available
+#warning User_Time not available
 
 #endif
 
@@ -111,7 +107,7 @@ Real_Time(void)
 #else
 
   real_time = 0;
-#warning real_time not available
+#warning Real_Time not available
 
 #endif
 
@@ -125,14 +121,26 @@ Real_Time(void)
  *  RANDOMIZE_SEED
  *
  *  Initializes the random number generator with a given seed.
- *  Returns the seed.
  */
-unsigned
+void
 Randomize_Seed(unsigned seed)
 {
-  srand(seed);
-  return seed;
+  srandom(seed);
 }
+
+
+
+/*
+ *   RANDOM_DOUBLE
+ *
+ *   Returns a random real number in [0..1) (1 not included)
+ */
+double
+Random_Double(void)
+{
+  return ((double) random() / (RAND_MAX + 1.0));
+}
+
 
 
 
@@ -145,38 +153,70 @@ Randomize_Seed(unsigned seed)
 unsigned
 Randomize(void)
 {
+  static int count = 0;
   unsigned seed;
-#ifdef HAVE_FTIME
-  struct timeb tp;
-  ftime(&tp);
-  seed = (unsigned) tp.time * 1000 + (unsigned) tp.millitm;
-#else
-  seed = (unsigned) time(NULL);
+  int seed_found = 0;
+#if defined(__unix__)
+  {
+    int fd;
+    if ((fd = open("/dev/urandom", O_RDONLY|O_NONBLOCK)) != -1 ||
+	(fd = open("/dev/random",  O_RDONLY|O_NONBLOCK)) != -1)
+      {
+	struct stat st;
+	/* Make sure it's a character device */
+	if ((fstat(fd, &st) == 0) && S_ISCHR(st.st_mode) && read(fd, &seed, sizeof(seed)) == sizeof(seed))
+	  seed_found = 1;
+	close(fd);
+      }
+  }
 #endif
+  if (!seed_found)
+    {
+#if defined(__unix__) || defined(__CYGWIN__)
+      struct timeval tv;
+      unsigned seed;
+      gettimeofday(&tv, NULL);
+      seed = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+#else
+      seed = GetTickCount();
+#endif
+      count = (count + random()) % 0xFFFFFFF;
+      seed = seed + (getpid() << (seed & 0xFF)) + getppid();
+      seed *= count;
+    }
+  
+  seed = seed & 0x7FFFFFFF;
 
   Randomize_Seed(seed);
-  seed = Random(65536);
-  Randomize_Seed(seed);
+
   return seed;
 }
+
 
 
 
 /*
  *  RANDOM
  *
- *  Returns a random number in 0..n-1.
+ *  Returns a random number in [0..n-1].
  */
 unsigned
 Random(unsigned n)
 {
-#if 1
-  return (unsigned) ((double) n * rand() / (RAND_MAX + 1.0));
-#else
-  unsigned res = (unsigned) ((double) n * rand() / (RAND_MAX + 1.0));
-  printf("random(%d) = %d\n", n, res);
-  return res;
-#endif
+  return (unsigned) (Random_Double() * n);
+}
+
+
+
+/*
+ *  RANDOM_INTERVAL
+ *
+ *  Returns a random number in [inf..sup]
+ */
+int
+Random_Interval(int inf, int sup)
+{
+  return (int) (Random_Double() * (sup - inf + 1)) + inf;
 }
 
 
@@ -188,9 +228,85 @@ Random(unsigned n)
  *  - of values in base_value..base_value+size-1 (if actual_value == NULL)
  *  - of values in actual_value[] + base_value
  *
+ *  Use the following shuffle (Durstenfeld implemetation of Fisher-Yates shuffle)
+ *
+ *  vec[0] = source[0];
+ *  for(i = 1; i < size; i++) {
+ *    j = random number in [0..i]
+ *    vec[i] = vec[j];
+ *    vec[j] = source[i];
+ *  }
+ */
+
+void
+Random_Permut(int *vec, int size, const int *actual_value, int base_value)
+{
+#if 0
+  int i, j, k, z;
+
+  if (actual_value == NULL)
+    {
+      for(i = 0; i < size; i++)
+	vec[i] = base_value + i;
+    }
+  else
+    {
+      for(i = 0; i < size; i++)
+	vec[i] = actual_value[i] + base_value;
+    }
+
+
+  for(i = 0; i < size; i++)
+    {
+      j = Random(size);
+      k = Random(size);
+      z = vec[j];
+      vec[j] = vec[k];
+      vec[k] = z;
+    }
+#else
+
+  int i, j;
+
+  if (actual_value == NULL)
+    {
+      vec[0] = base_value;
+      for(i = 1; i < size; i++)
+	{
+	  j = Random(i + 1);
+	  vec[i] = vec[j];
+	  vec[j] = base_value + i;
+	}
+    }
+  else
+    {
+      vec[0] = base_value + actual_value[0];
+      for(i = 1; i < size; i++)
+	{
+	  j = Random(i + 1);
+	  vec[i] = vec[j];
+	  vec[j] = base_value + actual_value[i];;
+	}
+    }
+#endif
+}
+
+
+
+
+/*
+ *  RANDOM_PERMUT_REPAIR
+ *
+ *  Repair a vector of size elements containing a random permutation 
+ *  - of values in base_value..base_value+size-1 (if actual_value == NULL)
+ *  - of values in actual_value[] + base_value
+ *
+ *  All erroneous elements are first marked (bit just before the sign bit) 
+ *  and then fixed.
+ *
  *  To have no problem with negative numbers (base_value < 0 and/or
- *  negative values un actual_value[]) the generation of the permutation
- *  is done on 0..size-1
+ *  negative values un actual_value[]) the repair of the permutation
+ *  is done in 0..size-1
  *  
  *  To ensure the permutation we mark each random generated integer
  *  (in 0..size-1) in vec setting the bit sign.
@@ -201,106 +317,27 @@ Random(unsigned n)
  *  for each index (e.g. a constant 1000 or 'size' or 'size * size')
  *  Experiments shows that it is better to not set a bound.
  *
- *  At the end, marks are reset and the permutation is translated to
- *  base_value..base_value+size-1 or to actual_value[]+base_value
+ *  At the end, all sign+error bits are reset and the permutation is 
+ *  translated to base_value..base_value+size-1 or to actual_value[]+base_value
  */
 
 #define TAKEN_BIT_MASK     (1 << (sizeof(int) * 8 - 1))
 #define ERR_BIT_MASK       (1 << (sizeof(int) * 8 - 2))
-#define TAKE_ERR_BIT_MASK  (ERR_BIT_MASK | TAKEN_BIT_MASK)
+#define TAKEN_ERR_BIT_MASK (ERR_BIT_MASK | TAKEN_BIT_MASK)
 
 #define IsTaken(k)         (vec[k] < 0)
-#define Take(k)            (vec[k] |= TAKEN_BIT_MASK)
-#define Assign0(k, v)      (vec[k] |= (v)) /* in the case we know the vec[k] = 0 (or 0X8000...0) */
-#define Assign(k, v)       (vec[k] = (vec[k] & TAKE_ERR_BIT_MASK) | (v))
-#define Value(k)           (vec[k] & ~TAKE_ERR_BIT_MASK)
+#define SetTaken(k)        (vec[k] |= TAKEN_BIT_MASK)
+#define Assign(k, v)       (vec[k] = (vec[k] & TAKEN_ERR_BIT_MASK) | (v))
+#define Value(k)           (vec[k] & ~TAKEN_ERR_BIT_MASK)
 
 #define IsError(k)         ((vec[k] & ERR_BIT_MASK) != 0)
 #define SetError(k)        (vec[k] |= ERR_BIT_MASK)
 
 
 #if 0
-#define PERMUT_MAX_TRIES    (size)
+#define PERMUT_MAX_TRIES   (size)
 #endif
 
-void
-Random_Permut(int *vec, int size, const int *actual_value, int base_value)
-{
-  int i, v;
-
-  /* step 1: be sure nothing is taken (reset all bit signs) */
-
-  memset(vec, 0, sizeof(int) * size); 
-
-#ifdef PERMUT_MAX_TRIES
-  int tries = 0;
-#endif
-
-  /* step 2: init vec[] with a permutation of 0..size-1 (all 'take' marks are reset) */
-
-  for(i = 0; i < size; i++)
-    {
-      do
-	v = Random(size);
-      while(IsTaken(v)
-#ifdef PERMUT_MAX_TRIES
-	    && ++tries < PERMUT_MAX_TRIES
-#endif
-	    );
-    
-#ifdef PERMUT_MAX_TRIES
-      if (tries >= PERMUT_MAX_TRIES)
-	{			
-	  int n = Random(size - i);
-
-	  for(v = 0; ; v++)	/* find the Nth unused value */
-	    {
-	      if (!IsTaken(v))
-		{
-		  if (n == 0)
-		    break;
-		  n--;
-		}
-	    }
-	}
-      tries = 0;
-#endif
-
-      /* here v is the random value (in 0..size-1) for vec[i] */
-      
-      Assign0(i, v);
-      Take(v);      /* mark found value v */
-    }
-  
-
-  /* step 3: reset marks and convert to actual_value[] (if any) + base_value */
-
-  if (actual_value == NULL)
-    {				/* reset taken and re-add base_value */
-      for(i = 0; i < size; i++)
-	vec[i] = Value(i) + base_value; 
-    }
-  else
-    {				/* reset taken and set to actual_value[] + base_value */
-      for(i = 0; i < size; i++)
-	vec[i] = actual_value[Value(i)] + base_value; 
-    }
-}
-
-
-
-
-/*
- *  RANDOM_PERMUT_REPAIR
- *
- *  Repair a vector of size elements containing a random permutation 
- *  of values in base_value..base_value+size-1.
- *
- *  All erroneous elements are first marked (bit just before the sign bit) 
- *  and then fixed (as in Random_Permut() see above).
- *
- *  At the end, all sign+error bits are reset.
- */
 
 void
 Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_value)
@@ -312,7 +349,7 @@ Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_value
   int tries = 0;
 #endif
 
-  /* step 1: transform all values of vec[] to values in 0..size-1  (all 'take' marks are reset) */
+  /* step 1: transform all values of vec[] to values in 0..size-1  (all 'taken' marks are reset) */
 
   if (actual_value == NULL)
     {
@@ -368,7 +405,7 @@ Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_value
 	      Assign(j, v);
 	}
       
-      Take(v);
+      SetTaken(v);
     }
 
   /* step 3: fix the errors in the permutation */
@@ -406,7 +443,7 @@ Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_value
 	  /* here v is the random value (in 0..size-1) for vec[i] */
       
 	  Assign(i, v); 
-	  Take(v);      /* mark found value v */
+	  SetTaken(v);      /* mark found value v */
 	  nb_err--;
 	}
     }
@@ -431,10 +468,10 @@ Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_value
  *  RANDOM_PERMUT_CHECK
  *
  *  Check if a vector of size elements is a permutation of
- *  values in base_value..base_value+size-1.
+ *  - of values in base_value..base_value+size-1 (if actual_value == NULL)
+ *  - of values in actual_value[] + base_value
  *
- *  Returns -1 if OK or the index of a found error (maybe not 
- *  the first if case some values are out the valid range
+ *  Returns -1 if OK or the index of a found error (maybe not the first)
  */
 int
 Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value)
@@ -466,7 +503,7 @@ Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value)
       for(i = 0; i < size; i++)
 	{
 	  v = vec[i] - base_value;
-	  for(j = 0;; j++)
+	  for(j = 0; ; j++)
 	    {
 	      if (j >= size)	/* not found: error */
 		{
@@ -491,7 +528,7 @@ Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value)
 
       /* if v is taken it is an error except if actual_value[v] appears several times
        * (since repeated elements must be grouped thus the next one is at v+1)
-       * then replace all follwing refs to v by v+1 (and v becomes v+1)
+       * then replace all following refs to v by v+1 (and v becomes v+1)
        */
 
       if (IsTaken(v))
@@ -508,10 +545,10 @@ Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value)
 	      Assign(j, v);
         }
       
-      Take(v);
+      SetTaken(v);
     }
 
-  /* step 3: remove 'take' marks and restore initial values */
+  /* step 3: remove 'taken' marks and restore initial values */
 
   if (actual_value == NULL)
     {				/* reset taken and re-add base_value */
@@ -536,8 +573,8 @@ Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value)
 
 #include "tools.h"
 
-#define SIZE  50
-#define BASE_VALUE  -10
+#define SIZE  30
+#define BASE_VALUE  1//-10
 
 int vec1[SIZE];
 int vec2[SIZE];
@@ -641,3 +678,127 @@ main(int argc, char *argv[])
 }
 
 #endif /* USE_ALONE */
+
+#if defined MPI
+#if defined PRINT_COSTS
+/* Read n entries */
+int
+readn(int fd, char * buffer, int n)
+{
+  int nread;
+  int nleft;
+  char * ptr;
+
+  ptr = buffer ;
+  nleft = n;
+  while( nleft != 0 ) {
+    if( (nread = read(fd, ptr, nleft)) < 0 ) {
+      if( nread < 0 )       // ERROR
+	switch(errno) {
+	case EBADF:
+	  printf("File descriptor unvalid or not open for reading") ;
+	  return 0 ;
+	case EFAULT:
+	  printf("Buffer pointe en dehors de l'espace d'adressage") ;
+	  return 0 ;
+	case EINVAL:
+	  printf("EINVAL") ;
+	  return 0 ;
+	case EIO:
+	  printf("EIO") ;
+	  return 0 ;
+	default:
+	  printf("Undefined") ;
+	  return 0 ;
+	}
+	return( 0 ) ;
+    } else if( nread == 0 ) /* EOF */
+      break ;
+    nleft -= nread;
+    ptr += nread;
+  }
+  return( n-nleft ) ;
+}
+/* Write n entries */
+size_t
+writen(int fd, const char * buffer, size_t n)
+{
+  size_t nleft;
+  size_t nwritten;
+  const char * ptr;
+  
+  ptr = buffer ;
+  nleft = n ;
+  while( nleft > 0 ) {
+    if( (nwritten = write(fd, ptr, nleft)) <= 0 ) {
+      if( errno == EINTR )
+	nwritten = 0 ;	/* and call write() again */
+      else
+	return( 0 ) ;	/* error */
+    }
+    nleft -= nwritten ;
+    ptr   += nwritten ;
+  }
+  return(n) ;
+}
+#endif /* PRINT_COSTS */
+
+/* Insert the item at head of list */
+void
+push_tegami_on( tegami * msg, tegami * head)
+{
+  msg->next = head->next ;
+  if( head->next != NULL ) {
+    (head->next)->previous = msg ;
+  } else head->previous = msg ;
+  msg->previous = NULL ;
+  head->next = msg ;
+#ifdef YC_DEBUG_QUEUE
+  head->size++ ;
+  if( head->nb_max_msgs_used < head->size )
+    head->nb_max_msgs_used = head->size ;
+#endif
+#ifdef YC_DEBUG_PRINT_QUEUE
+  DPRINTF("Stack %s: (+1->) %d elts; max_msg=%d\n",
+	  head->text, head->size, head->nb_max_msgs_used)
+#endif
+}
+/* Drop and return the head of the list */
+tegami *
+get_tegami_from( tegami * head)
+{
+  tegami * item = head->next ;
+#ifdef YC_DEBUG_QUEUE
+  assert( head->next != NULL ) ;
+#endif
+  head->next = item->next ;
+  head->previous = item->previous ;
+#ifdef YC_DEBUG_QUEUE
+  head->size-- ;
+  assert( head->size >= 0 ) ;
+#endif
+#ifdef YC_DEBUG_PRINT_QUEUE
+  DPRINTF("Stack %s: (-1->) %d elts\n", head->text, head->size)
+#endif
+  return item ;
+}
+tegami *
+unqueue_tegami_from( tegami * head)
+{
+  tegami * item = head->previous ;
+  if( item->previous != NULL ) {
+    (item->previous)->next = NULL ;
+  } else {
+    head->next = NULL ;
+  }
+  head->previous = item->previous ;
+#ifdef YC_DEBUG_QUEUE
+  head->size-- ;
+  assert( head->size >= 0 ) ;
+#endif
+#ifdef YC_DEBUG_PRINT_QUEUE
+  DPRINTF("Stack %s: (-1->) %d elts\n", head->text, head->size)
+#endif
+  return item ;
+}
+#endif /* MPI */

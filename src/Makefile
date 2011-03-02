@@ -1,6 +1,5 @@
 PKG_NAME=adaptive-$(shell cat ../VERSION)
 
-
 ifndef DEBUG
 DEBUG = 0
 endif
@@ -12,6 +11,7 @@ COMM = -UCELL_COMM
 endif
 
 CC=gcc
+AR=ar
 
 #CFLAGS=-g -Wall -DDEBUG -DLOG_FILE
 #CFLAGS=-g -Wall -DDEBUG
@@ -29,14 +29,14 @@ RANLIB=ranlib
 
 OBJLIB = ad_solver.o tools.o main.o \
 	 no_cost_var.o no_exec_swap.o no_cost_swap.o \
-	 no_next_i.o no_next_j.o no_displ_sol.o
+	 no_next_i.o no_next_j.o no_displ_sol.o no_reset.o
 
 LIBNAME=libad_solver.a
 
-EXECS=magic-square queens alpha all-interval partit langford perfect-square
+EXECS=magic-square queens alpha all-interval partit langford perfect-square cap qap
 
 %: %.c $(LIBNAME)
-	$(CC) -o $@ $(CFLAGS) $< $(LIBNAME)
+	$(CC) -o $@ $(CFLAGS) $< $(LIBNAME) -lm
 
 %-cell: spu/%.a Makefile.cell
 	make -f Makefile.cell DEBUG=$(DEBUG) COMM=$(COMM) libdefaults.a
@@ -52,7 +52,7 @@ cell: $(patsubst %,%-cell,$(EXECS))
 
 $(LIBNAME): $(OBJLIB)
 	rm -f $(LIBNAME) 
-	ar -rc $(LIBNAME) $(OBJLIB)
+	$(AR) rc $(LIBNAME) $(OBJLIB)
 	$(RANLIB) $(LIBNAME)
 
 

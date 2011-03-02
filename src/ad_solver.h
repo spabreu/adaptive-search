@@ -6,10 +6,27 @@
  *  ad_solver.h: general solver
  */
 
-#ifndef AD_SOLVER_H
-#define AD_SOLVER_H 1
+#ifndef AS_AD_SOLVER_H
+#define AS_AD_SOLVER_H
 
 #include "tools.h"
+
+#ifdef MPI
+#include "mpi.h"
+#include "limits.h" /* INT_MAX */
+#include "assert.h" /* For assert(). gcc -D NDEBUG to get ride of tests */
+#ifdef YC_DEBUG
+#define YC_DEBUG_MPI
+#define YC_DEBUG_RESTART
+#include <sys/time.h> /* gettimeofday() */
+#endif /* YC_DEBUG */
+#ifdef YC_DEBUG_MPI
+#include <sys/time.h> /* gettimeofday() */
+#endif
+#ifdef YC_DEBUG_RESTART
+#include <sys/time.h> /* gettimeofday() */
+#endif
+#endif /* MPI */
 
 #ifdef CELL
 #include <malloc.h>
@@ -76,9 +93,10 @@ typedef struct
   int nb_local_min_tot;		/* nb of local mins total */
 
 
-				/* --- other values (e.g. from main) not used the solver engine --- */
+				/* --- other values (e.g. from main) not used by the solver engine --- */
 
-  int param;			/* command-line parameter */
+  int param;			/* command-line integer parameter */
+  char param_file[512];         /* command-line file name parameter */
   int seed;			/* random seed (or -1 if any) */
   int reset_percent;		/* percentage of variables to reset */
   int data32[4];		/* some 32 bits  */
@@ -86,6 +104,32 @@ typedef struct
 
 } AdData;
 
+#define RESULTS_CHAR_MSG_SIZE 256 /* with \n */
+
+#if defined MPI
+int my_num, mpi_size ;
+int nb_digits_nbprocs ;             /* for exple, 128 procs -> 3 */
+unsigned int count_to_communication ; /* nb of iter before checking 
+					 receive of msg */
+#define NBMAXSTEPS 16               /* log2 nbprocs */
+typedef enum {                      /* Add a protocol => update ad_solver.c! */
+  LS_KILLALL,                       /* msg = [range ; proc finished] */
+  SENDING_RESULTS,
+  LS_COST,                          /* msg = [range ; cost] */
+  LS_NBMSGS
+} protocol_msg ;                    /* All kind of messages between processus */
+char * protocole_name [LS_NBMSGS] ; /* Instanciated in ad_solver.c! */
+tegami * the_message ;              /* Used as temporary variable */
+tegami list_sent_msgs ;
+tegami list_allocated_msgs ;        /* Careful: msgs not initialized! */
+tegami list_recv_msgs ;
+#if (defined COMM_COST) || (defined ITER_COST)
+unsigned int proba_communication ;  /* > (rand*100) -> sends cost */
+#endif
+#if defined PRINT_COSTS
+int file_descriptor_print_cost ;
+#endif
+#endif /* MPI */
 
 /*------------------*
  * Global variables *
@@ -117,7 +161,29 @@ int ad_has_log_file;
  * Prototypes *
  *------------*/
 
+#if defined PRINT_COSTS
+void
+print_costs() ;
+#endif
+
+#if defined MPI
+/* Note: We exit from Ad_Solve(), not returning, since we didn't find a solution
+   but have to end. But some data management has still to be done
+*/
+
+/* Goto (and don't return!) the normal ending of ad_solver without MPI */
+void free_data_of_ad_solver() ;
+/* Free pending msg, structures, etc. with global var */
+void dead_end_final() ;
+/* range | proc finished */
+void send_log_n( unsigned int[], protocol_msg ) ;
+#endif /* MPI */
+
 int Ad_Solve(AdData *p_ad);
+
+void Ad_Swap(int i, int j);
+
+void Ad_Un_Mark(int i);
 
 void Ad_Display(int *t, AdData *p_ad, unsigned *mark);
 
@@ -125,16 +191,35 @@ void Ad_Display(int *t, AdData *p_ad, unsigned *mark);
 
 int Cost_Of_Solution(int should_be_recorded);		/* mandatory */
 
-int Cost_On_Variable(int i);				/* optional else exhaustive search) */
+int Cost_On_Variable(int i);				/* optional else exhaustive search */
 
-int Cost_If_Swap(int current_cost, int i, int j);	/* optional else use Cost_Of_Solution) */
+int Cost_If_Swap(int current_cost, int i, int j);	/* optional else use Cost_Of_Solution */
 
-void Executed_Swap(int i, int j); 			/* optional else use Cost_Of_Solution) */
+void Executed_Swap(int i, int j); 			/* optional else use Cost_Of_Solution */
 
 int Next_I(int i);					/* optional else from 0 to p_ad->size-1 */
 
 int Next_J(int i, int j);				/* optional else from i+1 to p_ad->size-1 */
 
+int Reset(int nb_to_reset, AdData *p_ad);		/* optional else random reset */
+
 void Display_Solution(AdData *p_ad);			/* optional else basic display */
+
+
+
+
+#if 0
+#define IGNORE_MARK_IF_BEST
+#endif
+
+
+  /* what to do with marked vars at reset: 
+   * 0=nothing, 1=unmark reset (swapped) vars, 2=unmark all vars 
+   */
+
+//#define UNMARK_AT_RESET  0
+//#define UNMARK_AT_RESET  1
+#define UNMARK_AT_RESET  2
+
 
 #endif /* !AD_SOLVER_H */

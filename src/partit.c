@@ -1,7 +1,7 @@
 /*
  *  Adaptive search
  *
- *  Copyright (C) 2002-2010 Daniel Diaz, Philippe Codognet and Salvador Abreu
+ *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
  *
  *  partit.c: the partition problem
  */
@@ -11,7 +11,9 @@
 
 #include "ad_solver.h"
 
-
+#ifdef MPI
+#include <sys/time.h>
+#endif
 
 /*-----------*
  * Constants *
@@ -194,6 +196,19 @@ void
 Init_Parameters(AdData *p_ad)
 {
   int size = p_ad->param;
+#ifdef MPI
+  /*#ifdef YC_DEBUG*/
+  struct timeval tv ;
+  /*#endif*/
+#endif
+
+#ifdef MPI
+  #/* #ifdef YC_DEBUG */
+  gettimeofday(&tv, NULL);
+  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
+	  (long int)tv.tv_usec) ;
+  /*#endif */
+#endif /* MPI */
 
   p_ad->size = size;
 

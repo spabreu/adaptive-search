@@ -1,7 +1,8 @@
 /*
  *  Adaptive search
  *
- *  Copyright (C) 2002-2010 Daniel Diaz, Philippe Codognet and Salvador Abreu
+ *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
+ *			MPI Yves Caniou and Florian Richoux
  *
  *  magic_square.c: magic squares
  */
@@ -12,6 +13,9 @@
 
 #include "ad_solver.h"
 
+#ifdef MPI
+# include <sys/time.h>
+#endif
 
 /*-----------*
  * Constants *
@@ -38,7 +42,7 @@ typedef struct
 #define XIsOnD1(xr)   (xr.w1 < 0)
 #define XIsOnD2(xr)   (xr.w2 < 0)
 
-#elif 1 // BEST on x86_64
+#elif 0 // BEST on x86_64 /*YC: remove the compilation of this part for N>=128 */
 
 typedef unsigned int XRef;
 
@@ -58,7 +62,7 @@ typedef unsigned int XRef;
 #define XIsOnD1(xr)   ((int) xr < 0)
 #define XIsOnD2(xr)   ((xr & 0x40000000) != 0)
 
-#elif 0
+#elif 1 /* YC: activation du code pour N>=128 */
 
 typedef struct
 {
@@ -75,8 +79,7 @@ typedef struct
 #define XIsOnD1(xr)   (xr.d1 != 0)
 #define XIsOnD2(xr)   (xr.d2 != 0)
 
-#endif
-
+#endif /* FYC: activation du code pour N>=128 */
 
 
 /*------------------*
@@ -85,12 +88,10 @@ typedef struct
 
 static int size;		/* copy of p_ad->size (square_length*square_length) */
 static int *sol;		/* copy of p_ad->sol */
-
 static int square_length;	/* side of the square */
 static int square_length_m1;    /* square_length - 1 */
 static int square_length_p1;    /* square_length + 1 */
 static int avg;			/* sum to reach for each l/c/d */
-
 static int *err_l, *err_l_abs;  /* errors on lines (relative + absolute) */
 static int *err_c, *err_c_abs;	/* errors on columns */
 static int err_d1, err_d1_abs; 	/* error on d1 (\) */
@@ -131,14 +132,12 @@ static XRef *xref;
  */
 
 
-/*
+/**
  *  SOLVE
  *
  *  Initializations needed for the resolution.
  */
-
-void
-Solve(AdData *p_ad)
+void Solve(AdData *p_ad)
 {
   int i, j, k;
   XRef xr;
@@ -182,21 +181,18 @@ Solve(AdData *p_ad)
 }
 
 
-
-
-/*
+/**
  *  COST_OF_SOLUTION
  *
  *  Returns the total cost of the current solution.
  *  Also computes errors on constraints for subsequent calls to
  *  Cost_On_Variable, Cost_If_Swap and Executed_Swap.
  */
-
-int
-Cost_Of_Solution(int should_be_recorded)
+int Cost_Of_Solution(int should_be_recorded)
 {
   int k, r;
   int neg_avg = -avg;
+  int k1 = 0, k2 = 0;
 
   err_d1 = err_d2 = neg_avg;
 
@@ -213,7 +209,6 @@ Cost_Of_Solution(int should_be_recorded)
     }
   while(++k < size);
 
-  int k1 = 0, k2 = 0;
   do
     {
       k2 += square_length_m1;
@@ -240,54 +235,42 @@ Cost_Of_Solution(int should_be_recorded)
 }
 
 
-
-/*
+/**
  *  COST_ON_VARIABLE
  *
  *  Evaluates the error on a variable.
  */
-
-int
-Cost_On_Variable(int k)
+int Cost_On_Variable(int k)
 {
   XRef xr = xref[k];
   int r;
 
 #ifndef SLOW
-
   r = err_l_abs[XGetL(xr)] + err_c_abs[XGetC(xr)] + 
     (XIsOnD1(xr) ? err_d1_abs : 0) + 
     (XIsOnD2(xr) ? err_d2_abs : 0);
-  
-#else  // less efficient use it with -f 5 -p 10 -l (ad.size/4)+1
-
+#else	//less efficient use it with -f 5 -p 10 -l (ad.size/4)+1
   r = err_l[XGetL(xr)] + err_c[XGetC(xr)] + 
     (XIsOnD1(xr) ? err_d1 : 0) + 
     (XIsOnD2(xr) ? err_d2 : 0);
 
   r = abs(r);
-
 #endif
-
 
   return r;
 }
 
 
-
-/*
- *  COST_IF_SWAP
- *
- *  Evaluates the new total cost for a swap.
- */
-
 #define AdjustL(r, diff, k)   r = r - err_l_abs[k] + abs(err_l[k] + diff)
 #define AdjustC(r, diff, k)   r = r - err_c_abs[k] + abs(err_c[k] + diff)
 #define AdjustD1(r, diff)     r = r - err_d1_abs   + abs(err_d1   + diff)
 #define AdjustD2(r, diff)     r = r - err_d2_abs   + abs(err_d2   + diff)
-
-int
-Cost_If_Swap(int current_cost, int k1, int k2)
+/**
+ *  COST_IF_SWAP
+ *
+ *  Evaluates the new total cost for a swap.
+ */
+int Cost_If_Swap(int current_cost, int k1, int k2)
 {
   XRef xr1 = xref[k1];
   XRef xr2 = xref[k2];
@@ -314,7 +297,6 @@ Cost_If_Swap(int current_cost, int k1, int k2)
       AdjustC(r, diff2, c2);
     }
 
-
   if (XIsOnD1(xr1))		/* only one of both is on diagonal 1 */
     {
       if (!XIsOnD1(xr2))
@@ -339,16 +321,12 @@ Cost_If_Swap(int current_cost, int k1, int k2)
 }
 
 
-
-
-/*
+/**
  *  EXECUTED_SWAP
  *
  *  Records a swap.
  */
-
-void
-Executed_Swap(int k1, int k2)
+void Executed_Swap(int k1, int k2)
 {
   XRef xr1 = xref[k1];
   XRef xr2 = xref[k2];
@@ -385,14 +363,11 @@ Executed_Swap(int k1, int k2)
       err_d2_abs = abs(err_d2);
     }
 
-
   if (XIsOnD2(xr2))
     {
       err_d2 += diff2;
       err_d2_abs = abs(err_d2);
     }
-
-
 
 #if 0
   printf("----- after swapping %d and %d", k1, k2);
@@ -421,33 +396,33 @@ Executed_Swap(int k1, int k2)
 }
 
 
-
-
 int param_needed = 1;		/* overwrite var of main.c */
-
-
-/*
+/**
  *  INIT_PARAMETERS
  *
  *  Initialization function.
  */
-
-void
-Init_Parameters(AdData *p_ad)
+void Init_Parameters(AdData *p_ad)
 {
+#ifdef MPI
+# ifdef YC_DEBUG
+  struct timeval tv ;
+  gettimeofday(&tv, NULL);
+  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
+	  (long int)tv.tv_usec) ;
+# endif
+#endif /* !MPI */
+
   int square_length = p_ad->param;
+  int avg;
 
-  p_ad->size = square_length * square_length;
-
-  int avg = square_length * (p_ad->size + 1) / 2;
-  printf("sum of each line/col/diag = %d\n", avg);
-
-  p_ad->data32[0] = avg;
-
-
-  p_ad->base_value = 1;
-  p_ad->break_nl = square_length;
-				/* defaults */
+  p_ad->size		= square_length * square_length;
+  avg			= square_length * (p_ad->size + 1) / 2;
+  p_ad->data32[0]	= avg;
+  p_ad->base_value	= 1;
+  p_ad->break_nl	= square_length;
+			
+  /* defaults */
   if (p_ad->prob_select_loc_min == -1)
     p_ad->prob_select_loc_min = 6;
 
@@ -471,29 +446,26 @@ Init_Parameters(AdData *p_ad)
 }
 
 
-
-
-/*
+/**
  *  CHECK_SOLUTION
  *
  *  Checks if the solution is valid.
  */
-
-int
-Check_Solution(AdData *p_ad)
+int Check_Solution(AdData *p_ad)
 {
   int square_length = p_ad->param;
   int *sol = p_ad->sol;
   int avg = square_length * (p_ad->size + 1) / 2;
   int i, j;
   int sum_d1 = 0, sum_d2 = 0;
-  
+  int sum_l, sum_c;
 
   for(i = 0; i < square_length; i++)
     {
       sum_d1 += sol[i * (square_length + 1)];
       sum_d2 += sol[(i + 1) * (square_length - 1)];
-      int sum_l = 0, sum_c = 0;
+      sum_l = 0;
+      sum_c = 0;
 
       for(j = 0; j < square_length; j++)
         {
@@ -513,7 +485,6 @@ Check_Solution(AdData *p_ad)
 	  return 0;
 	}
     }
-
 
   if (sum_d1 != avg)
     {

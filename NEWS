@@ -1,3 +1,22 @@
+Change in version 1.0.4
+
+* improve Costas Array Problem (CAP) example
+* fix pb on Cell
+* fix a bug in all-interval (Check_Solution)
+
+Change in version 1.0.3
+
+* add Costas Array Problem (CAP) example
+
+Change in version 1.0.2
+
+* add support for minimization problems
+* add Quadratic Assignment Problem (QAP) example (not yet finished)
+
+Change in version 1.0.1
+
+* improve tools.c (random permutation and randomize)
+
 Change in version 1.0.0
 
 * changes in the API
