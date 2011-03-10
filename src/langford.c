@@ -2,7 +2,6 @@
  *  Adaptive search
  *
  *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
- *			MPI Yves Caniou and Florian Richoux
  *
  *  langford.c: the Langford's problem
  */
@@ -12,12 +11,9 @@
 
 #include "ad_solver.h"
 
-#if 0
-# define SLOW
-#endif
 
-#ifdef MPI
-# include <sys/time.h>
+#if 0
+#define SLOW
 #endif
 
 /*-----------*
@@ -34,7 +30,10 @@
 
 static int size;		/* copy of p_ad->size */
 static int *sol;		/* copy of p_ad->sol */
+
 static int order;		/* size / 2 */
+
+
 
 
 /*------------*
@@ -58,23 +57,31 @@ static int order;		/* size / 2 */
  */
 
 
-/**
+/*
  *  SOLVE
  *
  *  Initializations needed for the resolution.
  */
-void Solve(AdData *p_ad)
+
+void
+Solve(AdData *p_ad)
 {
   sol = p_ad->sol;
   size = p_ad->size;
+
   order = p_ad->size / 2;
 
   Ad_Solve(p_ad);
 }
 
 
-static int Cost_Var(int i)	/* here i < order */
-{				
+
+
+
+
+static int
+Cost_Var(int i)
+{				/* here i < order */
   int r = 0;
   int x, y, between;
 
@@ -84,25 +91,33 @@ static int Cost_Var(int i)	/* here i < order */
   between = abs(x - y) - 1;
 
 #ifndef SLOW
+
   r = abs(between - (i + 1));
   r = r * r;
+
 #else
+
   if (between != i + 1)
     r = (i + 1) * (i + 1);
+
 #endif
 
   return r;
 }
 
 
-/**
+
+
+/*
  *  COST_OF_SOLUTION
  *
  *  Returns the total cost of the current solution.
  *  Also computes errors on constraints for subsequent calls to
  *  Cost_On_Variable, Cost_If_Swap and Executed_Swap.
  */
-int Cost_Of_Solution(int should_be_recorded)
+
+int
+Cost_Of_Solution(int should_be_recorded)
 {
   int i;
   int r = 0;
@@ -114,12 +129,16 @@ int Cost_Of_Solution(int should_be_recorded)
 }
 
 
-/**
+
+
+/*
  *  COST_ON_VARIABLE
  *
  *  Evaluates the error on a variable.
  */
-int Cost_On_Variable(int i)
+
+int
+Cost_On_Variable(int i)
 {
   if (i >= order)
     i -= order;
@@ -128,23 +147,20 @@ int Cost_On_Variable(int i)
 }
 
 
+
+
+
 int param_needed = 1;		/* overwrite var of main.c */
-/**
+
+/*
  *  INIT_PARAMETERS
  *
  *  Initialization function.
  */
-void Init_Parameters(AdData *p_ad)
-{
-#ifdef MPI
-# ifdef YC_DEBUG
-  struct timeval tv ;
-  gettimeofday(&tv, NULL);
-  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
-	  (long int)tv.tv_usec) ;
-# endif
-#endif
 
+void
+Init_Parameters(AdData *p_ad)
+{
   int order = p_ad->param;
 
   p_ad->size = order * 2;
@@ -187,12 +203,14 @@ void Init_Parameters(AdData *p_ad)
 }
 
 
-/**
+
+/*
  *  DISPLAY_SOLUTION
  *
  *  Displays a solution.
  */
-void Display_Solution(AdData *p_ad)
+void
+Display_Solution(AdData *p_ad)
 {
   int i, j;
   int order = p_ad->size / 2;
@@ -210,12 +228,14 @@ void Display_Solution(AdData *p_ad)
 }
 
 
-/**
+/*
  *  CHECK_SOLUTION
  *
  *  Checks if the solution is valid.
  */
-int Check_Solution(AdData *p_ad)
+
+int
+Check_Solution(AdData *p_ad)
 {
   int order = p_ad->size / 2;
   int *sol = p_ad->sol;

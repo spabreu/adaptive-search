@@ -2,7 +2,6 @@
  *  Adaptive search
  *
  *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
- *			MPI Yves Caniou and Florian Richoux
  *
  *  no_cost_swap.c: wrapper when user function Cost_If_Swap is not defined
  */
@@ -11,7 +10,8 @@
 
 #include "ad_solver.h"
 
-int Cost_If_Swap(int current_cost, int i, int j)
+int
+Cost_If_Swap(int current_cost, int i, int j)
 {
   int x;
   int r;

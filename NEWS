@@ -1,3 +1,10 @@
+Change in version 1.1
+
+* Added MPI parallelization
+  - independent walk
+  - exchange of some information (cost, iteration)
+* Use cmake
+
 Change in version 1.0.4
 
 * improve Costas Array Problem (CAP) example

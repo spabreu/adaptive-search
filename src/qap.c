@@ -12,10 +12,6 @@
 
 #include "ad_solver.h"
 
-#ifdef MPI
-#include <sys/time.h>
-#endif
-
 #define QAP_NO_MAIN
 #include "qap-utils.c"
 
@@ -261,20 +257,6 @@ int param_needed = -1;		/* overwrite var of main.c */
 void
 Init_Parameters(AdData *p_ad)
 {
-#ifdef MPI
-  /*#ifdef YC_DEBUG*/
-  struct timeval tv ;
-  /*#endif*/
-#endif
-
-#ifdef MPI
-  #/* #ifdef YC_DEBUG */
-  gettimeofday(&tv, NULL);
-  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
-	  (long int)tv.tv_usec) ;
-  /*#endif */
-#endif /* MPI */
-
   p_ad->size = QAP_Load_Problem(p_ad->param_file, NULL); /* get the problem size only */
 
 				/* defaults */

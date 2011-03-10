@@ -2,7 +2,6 @@
  *  Adaptive search
  *
  *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
- *			MPI Yves Caniou and Florian Richoux
  *
  *  cap.c: the Costas Array Problem (2011)
  */
@@ -15,7 +14,7 @@
 #include "ad_solver.h"
 
 #ifdef MPI
-# include <sys/time.h>
+#include <sys/time.h>
 #endif
 
 /*-----------*
@@ -34,6 +33,7 @@ static int *sol;		/* copy of p_ad->sol */
 static int size;		/* copy of p_ad->size */
 static int size2;		/* (size - 1) / 2 */
 static int size_sq;		/* size * size */
+
 static int *nb_occ;		/* nb occurrences of each distance -(size -1)..-1 1..size-1 (0 is unused) */
 static int *first;		/* records the indice of a first occurence of a distance */
 static int *err;		/* errors on variables */
@@ -48,12 +48,14 @@ static int *err;		/* errors on variables */
  */
 
 
-/**
+/*
  *  SOLVE
  *
  *  Initializations needed for the resolution.
  */
-void Solve(AdData *p_ad)
+
+void
+Solve(AdData *p_ad)
 {
   sol = p_ad->sol;
   size = p_ad->size;
@@ -78,8 +80,12 @@ void Solve(AdData *p_ad)
 
 
 #define ERROR  size_sq - (dist * dist)
+
 #define ErrOn(k)   { err[k] += ERROR; err[k - dist] += ERROR; }
-inline int Cost(int *err)
+
+
+inline int 
+Cost(int *err)
 {
   int dist = 1;
   int i, first_i;
@@ -128,47 +134,58 @@ inline int Cost(int *err)
 }
 
 
-/**
+
+/*
  *  COST_OF_SOLUTION
  *
  *  Returns the total cost of the current solution.
  *  Also computes errors on constraints for subsequent calls to
  *  Cost_On_Variable, Cost_If_Swap and Executed_Swap.
  */
-int Cost_Of_Solution(int should_be_recorded)
+
+int
+Cost_Of_Solution(int should_be_recorded)
 {
   return Cost((should_be_recorded) ? err : NULL);
 }
 
 
-/**
+
+/*
  *  COST_ON_VARIABLE
  *
  *  Evaluates the error on a variable.
  */
-int Cost_On_Variable(int i)
+int
+Cost_On_Variable(int i)
 {
   return err[i];
 }
 
 
-/**
+
+/*
  *  EXECUTED_SWAP
  *
  *  Records a swap.
  */
-void Executed_Swap(int i1, int i2)
+
+void
+Executed_Swap(int i1, int i2)
 {
   Cost(err);
 }
 
 
-/**
+
+/*
  *  COST_IF_SWAP
  *
  *  Evaluates the new total cost for a swap.
  */
-int Cost_If_Swap(int current_cost, int i1, int i2)
+
+int
+Cost_If_Swap(int current_cost, int i1, int i2)
 {
   int x = sol[i1];
   int r;
@@ -186,20 +203,19 @@ int Cost_If_Swap(int current_cost, int i1, int i2)
 }
 
 
-/**
+
+/*
  *  RESET
  *
  * Performs a reset (returns the new cost or -1 if unknown)
  */
-int Reset(int n, AdData *p_ad)
+
+int
+Reset(int n, AdData *p_ad)
 {
   int i, j, k;
   int x, y, sz;
   int max = 0, imax = 0, nb_max = 0;
-  int bound = p_ad->total_cost;
-  int best_cost = ((unsigned) -1) >> 1;
-  int best_i = 0, best_j = 0, best_dir = 0; /* these inits are only for the compiler ! */
-  int cost;
 
   for(i = 0; i < size; i++)	/* find index of (one of) the most erroneous var */
     {
@@ -213,9 +229,15 @@ int Reset(int n, AdData *p_ad)
 	imax = i;
     }
 
+  int bound = p_ad->total_cost;
+  int best_cost = ((unsigned) -1) >> 1;
+  int best_i = 0, best_j = 0, best_dir = 0; /* these inits are only for the compiler ! */
+  int cost;
+
   for(k = 0; k < size; k++)
     {
       /* we need a random here to avoid to be trapped in the same "best" (see below best_cost) */
+
       if (Random_Double() < 0.4)
 	continue;
 
@@ -264,10 +286,12 @@ int Reset(int n, AdData *p_ad)
 	  best_cost = cost; best_i = i; best_j = j; best_dir = 1;
 	}
 
+
       /* cancel shift to re-init sol[] as it was at entry */
       memmove(sol + i, sol + i + 1, sz);      
       sol[j] = y;
     }
+
 
   sz = (best_j - best_i) * sizeof(int);
   if (best_dir == 0)		/* left */
@@ -287,24 +311,20 @@ int Reset(int n, AdData *p_ad)
 }
 
 
+
 int param_needed = 1;		/* overwrite var of main.c */
-/**
+
+/*
  *  INIT_PARAMETERS
  *
  *  Initialization function.
  */
-void Init_Parameters(AdData *p_ad)
-{
-#ifdef MPI
-# ifdef YC_DEBUG
-  struct timeval tv ;
-  gettimeofday(&tv, NULL);
-  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
-	 (long int)tv.tv_usec) ;
-# endif
-#endif
 
+void
+Init_Parameters(AdData *p_ad)
+{
   p_ad->size = p_ad->param;
+
   p_ad->base_value = 1;
 
   /* defaults */
@@ -331,16 +351,20 @@ void Init_Parameters(AdData *p_ad)
 }
 
 
-/**
+
+
+/*
  *  DISPLAY_SOLUTION
  *
  *  Displays a solution.
  */
-void Display_Solution(AdData *p_ad)
+void
+Display_Solution(AdData *p_ad)
 {
   int size = p_ad->size;
   int *sol = p_ad->sol;
   int i, j;
+
   int len = 4 + ((size * 4) - (1 + 2 * size)) / 2;
   char buff[len + 1];
 
@@ -373,6 +397,7 @@ void Display_Solution(AdData *p_ad)
     printf("----");
   printf("\n");
 
+
   for(i = 1; i < size; i++)
     {
       printf("%3d:", i);
@@ -387,19 +412,22 @@ void Display_Solution(AdData *p_ad)
 }
 
 
-/**
+
+
+/*
  *  CHECK_SOLUTION
  *
  *  Checks if the solution is valid.
  */
-int Check_Solution(AdData *p_ad)
+
+int
+Check_Solution(AdData *p_ad)
 {
   int size = p_ad->size;
   int *sol = p_ad->sol;
   int i, j, d;
   int r = 1;
-  int nr;
-  int dist;  
+
 
   if (nb_occ == NULL)
     {
@@ -422,10 +450,10 @@ int Check_Solution(AdData *p_ad)
 
       for(d = 1; d < 2 * size; d++)
 	{
-	  nr = nb_occ[d];
+	  int nr = nb_occ[d];
 	  if (nr > 1)
 	    {
-	      dist = d - size;
+	      int dist = d - size;
 	      printf("ERROR at row %d: distance %d appears %d times\n", i, dist, nr);
 	      r = 0;
 	    }

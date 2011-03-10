@@ -12,10 +12,6 @@
 
 #include "ad_solver.h"
 
-#ifdef MPI
-#include <sys/time.h>
-#endif
-
 /*-----------*
  * Constants *
  *-----------*/
@@ -321,20 +317,6 @@ int param_needed = 1;		/* overwrite var of main.c */
 void
 Init_Parameters(AdData *p_ad)
 {
-#ifdef MPI
-  /*#ifdef YC_DEBUG*/
-  struct timeval tv ;
-  /*#endif*/
-#endif
-
-#ifdef MPI
-  #/* #ifdef YC_DEBUG */
-  gettimeofday(&tv, NULL);
-  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
-	  (long int)tv.tv_usec) ;
-  /*#endif */
-#endif /* MPI */
-
   p_ad->size = p_ad->param;
 
   p_ad->first_best = 1;

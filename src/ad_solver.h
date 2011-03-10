@@ -11,23 +11,6 @@
 
 #include "tools.h"
 
-#ifdef MPI
-#include "mpi.h"
-#include "limits.h" /* INT_MAX */
-#include "assert.h" /* For assert(). gcc -D NDEBUG to get ride of tests */
-#ifdef YC_DEBUG
-#define YC_DEBUG_MPI
-#define YC_DEBUG_RESTART
-#include <sys/time.h> /* gettimeofday() */
-#endif /* YC_DEBUG */
-#ifdef YC_DEBUG_MPI
-#include <sys/time.h> /* gettimeofday() */
-#endif
-#ifdef YC_DEBUG_RESTART
-#include <sys/time.h> /* gettimeofday() */
-#endif
-#endif /* MPI */
-
 #ifdef CELL
 #include <malloc.h>
 #define malloc(sz) memalign(16, (((sz) + 127) >> 7) << 7)
@@ -106,31 +89,6 @@ typedef struct
 
 #define RESULTS_CHAR_MSG_SIZE 256 /* with \n */
 
-#if defined MPI
-int my_num, mpi_size ;
-int nb_digits_nbprocs ;             /* for exple, 128 procs -> 3 */
-unsigned int count_to_communication ; /* nb of iter before checking 
-					 receive of msg */
-#define NBMAXSTEPS 16               /* log2 nbprocs */
-typedef enum {                      /* Add a protocol => update ad_solver.c! */
-  LS_KILLALL,                       /* msg = [range ; proc finished] */
-  SENDING_RESULTS,
-  LS_COST,                          /* msg = [range ; cost] */
-  LS_NBMSGS
-} protocol_msg ;                    /* All kind of messages between processus */
-char * protocole_name [LS_NBMSGS] ; /* Instanciated in ad_solver.c! */
-tegami * the_message ;              /* Used as temporary variable */
-tegami list_sent_msgs ;
-tegami list_allocated_msgs ;        /* Careful: msgs not initialized! */
-tegami list_recv_msgs ;
-#if (defined COMM_COST) || (defined ITER_COST)
-unsigned int proba_communication ;  /* > (rand*100) -> sends cost */
-#endif
-#if defined PRINT_COSTS
-int file_descriptor_print_cost ;
-#endif
-#endif /* MPI */
-
 /*------------------*
  * Global variables *
  *------------------*/
@@ -141,14 +99,11 @@ int ad_reinit_after_if_swap;	/* copy of p_ad->reinit_after_if_swap (used by no_c
 int ad_no_cost_var_fct;		/* true if a user Cost_On_Variable is not defined */
 int ad_no_displ_sol_fct;	/* true if a user Display_Sol is not defined */
 
-
-
 #if defined(AD_SOLVER_FILE) && defined(DEBUG) && (DEBUG & 32)
 int ad_has_debug = 1;
 #else
 int ad_has_debug;
 #endif
-
 
 #if defined(AD_SOLVER_FILE) && defined(LOG_FILE)
 int ad_has_log_file = 1;
@@ -156,28 +111,9 @@ int ad_has_log_file = 1;
 int ad_has_log_file;
 #endif
 
-
 /*------------*
  * Prototypes *
  *------------*/
-
-#if defined PRINT_COSTS
-void
-print_costs() ;
-#endif
-
-#if defined MPI
-/* Note: We exit from Ad_Solve(), not returning, since we didn't find a solution
-   but have to end. But some data management has still to be done
-*/
-
-/* Goto (and don't return!) the normal ending of ad_solver without MPI */
-void free_data_of_ad_solver() ;
-/* Free pending msg, structures, etc. with global var */
-void dead_end_final() ;
-/* range | proc finished */
-void send_log_n( unsigned int[], protocol_msg ) ;
-#endif /* MPI */
 
 int Ad_Solve(AdData *p_ad);
 
@@ -187,7 +123,7 @@ void Ad_Un_Mark(int i);
 
 void Ad_Display(int *t, AdData *p_ad, unsigned *mark);
 
-							/* functions provided by the user */
+/* functions provided by the user */
 
 int Cost_Of_Solution(int should_be_recorded);		/* mandatory */
 
@@ -204,9 +140,6 @@ int Next_J(int i, int j);				/* optional else from i+1 to p_ad->size-1 */
 int Reset(int nb_to_reset, AdData *p_ad);		/* optional else random reset */
 
 void Display_Solution(AdData *p_ad);			/* optional else basic display */
-
-
-
 
 #if 0
 #define IGNORE_MARK_IF_BEST

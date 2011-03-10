@@ -2,7 +2,6 @@
  *  Adaptive search
  *
  *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
- *			MPI Yves Caniou and Florian Richoux
  *
  *  no_displ_sol.c: wrapper when user function Display_Solution is not defined
  */
@@ -11,18 +10,21 @@
 
 #include "ad_solver.h"
 
-/**
+/*
  *  DISPLAY_SOLUTION
  *
  */
-void Display_Solution(AdData *p_ad)
+void
+Display_Solution(AdData *p_ad)
 {
   Ad_Display(p_ad->sol, p_ad, NULL);
 }
 
-static void Init(void) __attribute__ ((constructor));
+static void
+Init(void) __attribute__ ((constructor));
 
-static void Init(void)
+static void
+Init(void)
 {
   ad_no_displ_sol_fct = 1;
 }

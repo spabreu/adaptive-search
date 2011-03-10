@@ -2,7 +2,6 @@
  *  Adaptive search
  *
  *  Copyright (C) 2002-2011 Daniel Diaz, Philippe Codognet and Salvador Abreu
- *			MPI Yves Caniou and Florian Richoux
  *
  *  alpha.c: alphacipher
  */
@@ -14,16 +13,14 @@
 
 #include "ad_solver.h"
 
-#ifdef MPI
-# include <sys/time.h>
-#endif
-
 /*-----------*
  * Constants *
  *-----------*/
 
 #define NB_VAR 26
+
 #define NB_CSTR 20
+
 #define A 0
 #define B 1
 #define C 2
@@ -74,11 +71,10 @@ typedef struct
  * Global variables *
  *------------------*/
 
-static int	size;			/* copy of p_ad->size */
-static int	*sol;			/* copy of p_ad->sol */
-static int	err[NB_CSTR];		/* errors on constraints */
-static XRef	xref[NB_VAR][NB_CSTR];
-static InfCstr	cstr[NB_CSTR] =
+static int size;		/* copy of p_ad->size */
+static int *sol;		/* copy of p_ad->sol */
+
+static InfCstr cstr[NB_CSTR] =
 { { { B,A,L,L,E,T      , -1 },  45 },
   { { C,E,L,L,O        , -1 },  43 },
   { { C,O,N,C,E,R,T    , -1 },  74 },
@@ -99,6 +95,11 @@ static InfCstr	cstr[NB_CSTR] =
   { { T,H,E,M,E        , -1 },  72 },
   { { V,I,O,L,I,N      , -1 }, 100 },
   { { W,A,L,T,Z        , -1 },  34 } };
+
+static int err[NB_CSTR];	/* errors on constraints */
+
+static XRef xref[NB_VAR][NB_CSTR];
+
 
 
 /*------------*
@@ -129,12 +130,14 @@ static InfCstr	cstr[NB_CSTR] =
  */
 
 
-/**
+/*
  *  SOLVE
  *
  *  Initializations needed for the resolution.
  */
-void Solve(AdData *p_ad)
+
+void
+Solve(AdData *p_ad)
 {
   int i, j;
   int *p;
@@ -144,8 +147,10 @@ void Solve(AdData *p_ad)
   sol = p_ad->sol;
   size = p_ad->size;
 
+
   if (xref[0][0].times == 0)	/* all constant arrays are defined */
     {
+
       for(j = 0; j < NB_CSTR; j++)
 	{
 	  for(p = cstr[j].left; *p >= 0; p++)
@@ -182,14 +187,17 @@ void Solve(AdData *p_ad)
 }
 
 
-/**
+
+/*
  *  COST_OF_SOLUTION
  *
  *  Returns the total cost of the current solution.
  *  Also computes errors on constraints for subsequent calls to
  *  Cost_On_Variable, Cost_If_Swap and Executed_Swap.
  */
-int Cost_Of_Solution(int should_be_recorded)
+
+int
+Cost_Of_Solution(int should_be_recorded)
 {
   int j, er;
   int *p;
@@ -220,12 +228,15 @@ int Cost_Of_Solution(int should_be_recorded)
 }
 
 
-/**
+
+/*
  *  COST_ON_VARIABLE
  *
  *  Evaluates the error on a variable.
  */
-int Cost_On_Variable(int i)
+
+int
+Cost_On_Variable(int i)
 {
   XRef *q;
   int t;
@@ -247,13 +258,17 @@ int Cost_On_Variable(int i)
 }
 
 
-#define Adjust(r, diff, x)   r = r - abs(x) + abs(x + (diff))
-/**
+
+/*
  *  COST_IF_SWAP
  *
  *  Evaluates the new total cost for a swap.
  */
-int Cost_If_Swap(int current_cost, int i1, int i2)
+
+#define Adjust(r, diff, x)   r = r - abs(x) + abs(x + (diff))
+
+int
+Cost_If_Swap(int current_cost, int i1, int i2)
 {
   int diff1, diff2, r;
   XRef *q1, *q2;
@@ -313,12 +328,15 @@ int Cost_If_Swap(int current_cost, int i1, int i2)
 }
 
 
-/**
+
+/*
  *  EXECUTED_SWAP
  *
  *  Records a swap.
  */
-void Executed_Swap(int i1, int i2)
+
+void
+Executed_Swap(int i1, int i2)
 {
   int diff1, diff2;
   XRef *q;
@@ -342,26 +360,21 @@ void Executed_Swap(int i1, int i2)
 }
 
 
-/**
+
+
+/*
  *  INIT_PARAMETERS
  *
  *  Initialization function.
  */
-void Init_Parameters(AdData *p_ad)
-{
-#ifdef MPI
-# ifdef YC_DEBUG
-  struct timeval tv ;
-  gettimeofday(&tv, NULL);
-  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
-	  (long int)tv.tv_usec) ;
-# endif
-#endif
 
+void
+Init_Parameters(AdData *p_ad)
+{
   p_ad->size = NB_VAR;
+
   p_ad->base_value = 1;
-  
-  /* defaults */
+				/* defaults */
   if (p_ad->prob_select_loc_min == -1)
     p_ad->prob_select_loc_min = 10000; /* not used */
 
@@ -385,12 +398,16 @@ void Init_Parameters(AdData *p_ad)
 }
 
 
-/**
+
+
+/*
  *  CHECK_SOLUTION
  *
  *  Checks if the solution is valid.
  */
-int Check_Solution(AdData *p_ad)
+
+int
+Check_Solution(AdData *p_ad)
 {
   int j, x;
   int *p;

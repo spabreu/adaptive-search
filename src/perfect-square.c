@@ -15,10 +15,6 @@
 
 #define ACTUAL_VALUES
 
-#ifdef MPI
-#include <sys/time.h>
-#endif
-
 /*-----------*
  * Constants *
  *-----------*/
@@ -365,19 +361,6 @@ void
 Init_Parameters(AdData *p_ad)
 {
   int pb_no = p_ad->param;
-#ifdef MPI
-  /*#ifdef YC_DEBUG*/
-  struct timeval tv ;
-  /*#endif*/
-#endif
-
-#ifdef MPI
-  #/* #ifdef YC_DEBUG */
-  gettimeofday(&tv, NULL);
-  printf("%d begins %ld:%ld\n", my_num, (long int)tv.tv_sec,
-	  (long int)tv.tv_usec) ;
-  /*#endif */
-#endif /* MPI */
 
   if (pb_no < 0)
     pb_no = 0;

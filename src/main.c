@@ -17,16 +17,17 @@
 #include <time.h>                         /* time() */
 #include <sys/time.h>                     /* gettimeofday() */
 #include <limits.h>                       /* To initiate first random seed */
-#if defined PRINT_COSTS
+#  if defined PRINT_COSTS
 #include <unistd.h>                       /* sleep() */
 #include <sys/types.h>                    /* open()... */
 #include <sys/stat.h>                     /* and S_IRUSR... */
 #include <fcntl.h>                        /* and O_WDONLY */
 #include <string.h>                       /* strdup() */
-#endif
+#  endif
 #endif /* MPI */
 
 #include "ad_solver.h"
+#include "ad_solver_MPI.h"
 
 /*-----------*
  * Constants *
@@ -198,52 +199,52 @@ main(int argc, char *argv[])
 
   gettimeofday(&tv, NULL);
   DPRINTF("%ld.%ld: %d ; Print_seed par user %ld\n",
-	  tv.tv_sec, tv.tv_usec, my_num, print_seed)
+	  tv.tv_sec, tv.tv_usec, my_num, print_seed) ;
 
-  PRINT0("Program: %s\n", argv[0])
-  PRINT0("Number of procs used: %d\n",mpi_size)
+  PRINT0("Program: %s\n", argv[0]) ;
+  PRINT0("Number of procs used: %d\n",mpi_size) ;
   /* Print compilation options */
-  PRINT0("Compilation options:\n")
+  PRINT0("Compilation options:\n") ;
 #if defined MPI
-  PRINT0("- MPI (So forced count to 1 (-b 1)!\n")
+  PRINT0("- MPI (So forced count to 1 (-b 1)!\n") ;
   count = 1 ;
 #endif
 #if defined DEBUG_MPI_ENDING
-  PRINT0("- DEBUG_MPI_ENDING\n")
+  PRINT0("- DEBUG_MPI_ENDING\n") ;
 #endif
 #if defined LOG_FILE
-  PRINT0("- LOG_FILE\n")
+  PRINT0("- LOG_FILE\n") ;
 #endif
 #if defined NO_SCREEN_OUTPUT
-  PRINT0("- NO_SCREEN_OUTPUT\n")
+  PRINT0("- NO_SCREEN_OUTPUT\n") ;
 #endif
 #if defined DISPLAY_0
-  PRINT0("- DISPLAY_0\n")
+  PRINT0("- DISPLAY_0\n") ;
 #endif
 #if defined DISPLAY_ALL
-  PRINT0("- DISPLAY_ALL\n")
+  PRINT0("- DISPLAY_ALL\n") ;
 #endif
 #if defined DEBUG
-  PRINT0("- DEBUG\n")
+  PRINT0("- DEBUG\n") ;
 #endif
 #if defined YC_DEBUG_QUEUE
-  PRINT0("- YC_DEBUG_QUEUE\n")
+  PRINT0("- YC_DEBUG_QUEUE\n") ;
 #endif
 #if defined YC_DEBUG_PRINT_QUEUE
-  PRINT0("- YC_DEBUG_PRINT_QUEUE\n")
+  PRINT0("- YC_DEBUG_PRINT_QUEUE\n") ;
 #endif
 #if defined PRINT_COSTS
-  PRINT0("- PRINT_COSTS\n")
+  PRINT0("- PRINT_COSTS\n") ;
 #endif
   /* Heuristic for communications */
 #if defined COMM_COST
-  PRINT0("With COMM_COST\n")
+  PRINT0("With COMM_COST\n") ;
 #elif defined ITER_COST
-  PRINT0("With ITER_COST\n")
+  PRINT0("With ITER_COST\n") ;
 #elif defined COMM_SOL
-  PRINT0("With COMM_SOL\n")
+  PRINT0("With COMM_SOL\n") ;
 #else
-  PRINT0("Without comm exept for terminaison\n")
+  PRINT0("Without comm exept for terminaison\n") ;
 #endif
 
   i=mpi_size ;
@@ -255,7 +256,7 @@ main(int argc, char *argv[])
 
 #if defined PRINT_COSTS
   if( filename_pattern_print_cost==NULL ) {
-    PRINT0("Please give a pattern in which to save costs\n\n")
+    PRINT0("Please give a pattern in which to save costs\n\n") ;
     exit(-1) ;
   }
   tmp_filename=(char*)
@@ -264,7 +265,7 @@ main(int argc, char *argv[])
 	   + nb_digits_nbprocs ) ;
   if( nb_digits_nbprocs > 3 ) {
     PRINT0("You use a number of procs sup to 999. "
-	   "You must modify the code to adjust next line\n")
+	   "You must modify the code to adjust next line\n") ;
     exit(-1) ;
   }
   /* TODO: How can we bypass the static char to format output in nxt line? */
@@ -273,7 +274,7 @@ main(int argc, char *argv[])
 				    O_WRONLY | O_EXCL | O_CREAT,
 				    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) ;
   if( file_descriptor_print_cost == -1 ) {
-    DPRINTF("Cannot create file to print costs: file already exists?\n")
+    DPRINTF("Cannot create file to print costs: file already exists?\n") ;
     return -1 ;
   }
 #endif /* PRINT_COSTS */
@@ -295,14 +296,14 @@ main(int argc, char *argv[])
   for( i=0 ; i<nb_stocked_messages ; i++ )
     push_tegami_on( (tegami*)malloc(sizeof(tegami)),
 		    &list_allocated_msgs) ;
-  PRINT0("Prepared %d messages!\n", nb_stocked_messages)
+  PRINT0("Prepared %d messages!\n", nb_stocked_messages) ;
   /*************************** Launch async recv: will act as mailbox */
   the_message = get_tegami_from( &list_allocated_msgs) ;
 
 #if defined YC_DEBUG_MPI
   gettimeofday(&tv, NULL);
   DPRINTF("%ld.%ld: %d launches MPI_Irecv(), any source\n",
-	  tv.tv_sec, tv.tv_usec, my_num)
+	  tv.tv_sec, tv.tv_usec, my_num) ;
 #endif /* YC_DEBUG_MPI */
   MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
 	    MPI_ANY_SOURCE, 
@@ -325,6 +326,12 @@ main(int argc, char *argv[])
   /* defaults */
 
   Init_Parameters(p_ad);
+#if defined MPI
+  gettimeofday(&tv, NULL);
+  printf("%d begins its resolution at %ld:%ld\n", my_num, (long int)tv.tv_sec,
+	  (long int)tv.tv_usec) ;
+#endif
+
 
   if (p_ad->reset_limit >= p_ad->size)
     p_ad->reset_limit = p_ad->size - 1;
@@ -333,10 +340,10 @@ main(int argc, char *argv[])
   //setlinebuf(stdout);
 
   if (p_ad->debug > 0 && !ad_has_debug)
-    DPRINTF("Warning ad_solver is not compiled with debugging support\n")
+    DPRINTF("Warning ad_solver is not compiled with debugging support\n") ;
 
   if (p_ad->log_file && !ad_has_log_file)
-    DPRINTF("Warning ad_solver is not compiled with log file support\n")
+    DPRINTF("Warning ad_solver is not compiled with log file support\n") ;
 
   p_ad->size_in_bytes = p_ad->size * sizeof(int);
   p_ad->sol = malloc(p_ad->size_in_bytes);
@@ -352,31 +359,30 @@ main(int argc, char *argv[])
     }
 
   /************ Print configuration information + specific initialization *****/  
-  PRINT0("current random seed used: %u ->%u /- %u \n", (unsigned int)p_ad->seed, (unsigned int)print_seed, (unsigned)(seed_chaos*LONG_MAX))
+  PRINT0("current random seed used: %u ->%u /- %u \n", (unsigned int)p_ad->seed, (unsigned int)print_seed, (unsigned)(seed_chaos*LONG_MAX)) ;
   PRINT0("variables of loc min are frozen for: %d swaps\n",
-	  p_ad->freeze_loc_min)
-  PRINT0("variables swapped are frozen for: %d swaps\n", p_ad->freeze_swap)
+	 p_ad->freeze_loc_min) ;
+  PRINT0("variables swapped are frozen for: %d swaps\n", p_ad->freeze_swap) ;
   if (p_ad->reset_percent >= 0)
-    PRINT0("%d %% = ", p_ad->reset_percent)
+    PRINT0("%d %% = ", p_ad->reset_percent) ;
   PRINT0("%d variables are reset when %d variables are frozen\n", 
-	 p_ad->nb_var_to_reset, p_ad->reset_limit)
-  PRINT0("probability to select a local min (instead of staying on a plateau): ")
-  if (p_ad->prob_select_loc_min >=0 && p_ad->prob_select_loc_min <= 100) {
-    PRINT0("%d %%\n", p_ad->prob_select_loc_min)
-  } else {
-    PRINT0("not used\n")
-  }
+	 p_ad->nb_var_to_reset, p_ad->reset_limit) ;
+  PRINT0("probability to select a local min (instead of "
+	 "staying on a plateau): ") ;
+  if (p_ad->prob_select_loc_min >=0 && p_ad->prob_select_loc_min <= 100)
+    PRINT0("%d %%\n", p_ad->prob_select_loc_min) ;
+  else PRINT0("not used\n") ;
   PRINT0("abort when %d iterations are reached "
 	 "and restart at most %d times\n",
-	 p_ad->restart_limit, p_ad->restart_max)
+	 p_ad->restart_limit, p_ad->restart_max) ;
 
 #if defined MPI
   PRINT0("Perform communication tests every %d iterations\n",
-	 count_to_communication )
+	 count_to_communication ) ;
 #if (defined COMM_COST)||(defined ITER_COST)
-  PRINT0("Prob communication = %d\n", proba_communication)
+  PRINT0("Prob communication = %d\n", proba_communication) ;
 #endif
-  PRINT0("===========================================\n\n")
+  PRINT0("===========================================\n\n") ;
 #endif
 
   if (count <= 0) /* Note: MPI => count=1 */
@@ -389,7 +395,7 @@ main(int argc, char *argv[])
       time_one = ((double) User_Time() - time_one0) / 1000;
 
       if (p_ad->exhaustive)
-	DPRINTF("exhaustive search\n")
+	DPRINTF("exhaustive search\n") ;
       
       if (count < 0)
 	Display_Solution(p_ad);
@@ -397,7 +403,7 @@ main(int argc, char *argv[])
       Verify_Sol(p_ad);
 
       if (p_ad->total_cost)
-	DPRINTF("*** NOT SOLVED (cost of this pseudo-solution: %d) ***\n", p_ad->total_cost)
+	DPRINTF("*** NOT SOLVED (cost of this pseudo-solution: %d) ***\n", p_ad->total_cost) ;
 
       if (count == 0)
 	{
@@ -423,7 +429,7 @@ main(int argc, char *argv[])
       return 0 ;
     } /* (count <= 0) */
 
-  PRINT0("\n")
+  PRINT0("\n") ;
 
   if (user_stat_name)
     sprintf(str, " %8s |", user_stat_name);
@@ -434,17 +440,17 @@ main(int argc, char *argv[])
 	  "|   resets | same/iter|%s\n", str);
 
   if (param_needed > 0)
-    PRINT0("%*d\n", (int) strlen(buff)/2, p_ad->param)
+    PRINT0("%*d\n", (int) strlen(buff)/2, p_ad->param) ;
   else if (param_needed < 0)
-    PRINT0("%*s\n", (int) strlen(buff)/2, p_ad->param_file)
+    PRINT0("%*s\n", (int) strlen(buff)/2, p_ad->param_file) ;
     
   
-  PRINT0("%s", buff)
+  PRINT0("%s", buff) ;
   for(i = 0; buff[i] != '\n'; i++)
     if (buff[i] != '|')
       buff[i] = '-';
-  PRINT0("%s", buff)
-  PRINT0("\n\n")
+  PRINT0("%s", buff) ;
+  PRINT0("\n\n") ;
 
   
   nb_restart_cum = time_cum = user_stat_cum = 0;
@@ -630,10 +636,10 @@ main(int argc, char *argv[])
 #endif /* MPI */
     } /* for(i = 1; i <= count; i++) */
 
-  if (count <= 0) /* YC->Daniel: is it really possible here? return 0 before.*/
+  if (count <= 0) /* YC->DD: is it really possible here? return 0 before.*/
     return 0;
 
-  if( count > 1 ) { /* YC->Daniel: why this test has been removed? */
+  if( count > 1 ) { /* YC->DD: why this test has been removed? */
     printf("| min | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 	   nb_restart_min, time_min,
 	   nb_iter_tot_min, nb_local_min_tot_min, nb_swap_tot_min,
@@ -656,7 +662,7 @@ main(int argc, char *argv[])
   /* Perform a broadcast to kill everyone since I have the solution */
   
 #if defined DEBUG_MPI_ENDING
-  DPRINTF("Proc %d enters TERM MASTER finishing!\n", my_num)
+  DPRINTF("Proc %d enters TERM MASTER finishing!\n", my_num) ;
 #endif
 
   if( my_num != 0 ) { 
@@ -669,7 +675,7 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
     gettimeofday(&tv, NULL);
     DPRINTF("%ld.%ld: %d launches MPI_Isend(), LS_KILLALL to 0\n",
-	    tv.tv_sec, tv.tv_usec, my_num)
+	    tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
     MPI_Isend(tmp_message->message, SIZE_MESSAGE, MPI_INT,
 	      0,
@@ -680,13 +686,13 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
     gettimeofday(&tv, NULL);
     DPRINTF("%ld.%ld: %d loops on recvd msgs\n",
-	    tv.tv_sec, tv.tv_usec, my_num)
+	    tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
     do {
 #ifdef DEBUG_MPI_ENDING
 	gettimeofday(&tv, NULL);
 	DPRINTF("  - %ld.%ld: %d launches MPI_Wait()\n",
-		tv.tv_sec, tv.tv_usec, my_num)
+		tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
       MPI_Wait(&(the_message->handle), &(the_message->status)) ;
 #ifdef DEBUG_MPI_ENDING
@@ -696,7 +702,7 @@ main(int argc, char *argv[])
 		the_message->message[0],
 		the_message->message[1],
 		protocole_name[the_message->status.MPI_TAG],
-		the_message->status.MPI_SOURCE)
+		the_message->status.MPI_SOURCE) ;
 #endif
       if( the_message->status.MPI_TAG != LS_KILLALL ) {
 	push_tegami_on( the_message, &list_allocated_msgs) ;
@@ -704,7 +710,7 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
 	gettimeofday(&tv, NULL);
 	DPRINTF("%ld.%ld: %d launches MPI_Irecv(), ANY_TAG, any source\n",
-		tv.tv_sec, tv.tv_usec, my_num)
+		tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
 	MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
 		  MPI_ANY_SOURCE, 
@@ -714,7 +720,7 @@ main(int argc, char *argv[])
     } while( the_message->status.MPI_TAG != LS_KILLALL ) ;
 #ifdef DEBUG_MPI_ENDINF
     DPRINTF("%d received msg from %d that %d finished first\n\n",
-	    my_num, the_message->status.MPI_SOURCE, the_message->message[1])
+	    my_num, the_message->status.MPI_SOURCE, the_message->message[1]) ;
 #endif 
     /* Kill sub-range proc */
     send_log_n(the_message->message, LS_KILLALL) ;
@@ -724,7 +730,7 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
 	gettimeofday(&tv, NULL);
 	DPRINTF("%ld.%ld: %d launches MPI_Isend(), results to 0\n",
-		tv.tv_sec, tv.tv_usec, my_num)
+		tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
       MPI_Send( results, RESULTS_CHAR_MSG_SIZE, MPI_CHAR,
 		0, SENDING_RESULTS,
@@ -732,7 +738,7 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
       gettimeofday(&tv, NULL);
       DPRINTF("%ld.%ld: %d calls MPI_Finalize()\n",
-	      tv.tv_sec, tv.tv_usec, my_num)
+	      tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
 #ifdef PRINT_COSTS
       print_costs() ;
@@ -743,14 +749,14 @@ main(int argc, char *argv[])
     /*********************************** Proc 0 ! ****************************/
     /* Check if we received a LS_KILLALL before we finished the calculus */
 #ifdef DEBUG_MPI_ENDING
-    DPRINTF("%d checks if we received LS_KILLALL in last msgs...\n", my_num)
+    DPRINTF("%d checks if we received LS_KILLALL in last msgs...\n", my_num) ;
 #endif
 
     do {
 #ifdef DEBUG_MPI_ENDING
 	gettimeofday(&tv, NULL);
 	DPRINTF("%ld.%ld: %d launches MPI_Test()\n",
-		tv.tv_sec, tv.tv_usec, my_num)
+		tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
       MPI_Test(&(the_message->handle),
 	       &flag,
@@ -763,7 +769,7 @@ main(int argc, char *argv[])
 		my_num,
 		the_message->message[1],
 		protocole_name[the_message->status.MPI_TAG],
-		the_message->status.MPI_SOURCE)
+		the_message->status.MPI_SOURCE) ;
 #endif
 	if( the_message->status.MPI_TAG == LS_KILLALL ) {
 	  the_message->message[0] = mpi_size ;
@@ -775,7 +781,7 @@ main(int argc, char *argv[])
 	  DPRINTF("%ld.%ld: %d launches MPI_Irecv() of results for"
 		  " source %d\n",
 		  tv.tv_sec, tv.tv_usec, my_num,
-		  the_message->status.MPI_SOURCE)
+		  the_message->status.MPI_SOURCE) ;
 #endif
 	  MPI_Recv( recv_results, RESULTS_CHAR_MSG_SIZE, MPI_CHAR,
 		    the_message->status.MPI_SOURCE, SENDING_RESULTS,
@@ -783,12 +789,12 @@ main(int argc, char *argv[])
 		    MPI_STATUS_IGNORE) ;
 	  /**** Compare its result to our! */
 #ifdef DEBUG_MPI_ENDING
-	  DPRINTF("Recvd : %s\n", recv_results)
+	  DPRINTF("Recvd : %s\n", recv_results) ;
 	  DPRINTF("  -> %s\n",
-		  strchr(strchr(recv_results+1,'|')+1, '|')+1)
-	  DPRINTF("Computed : %s\n", results)
+		  strchr(strchr(recv_results+1,'|')+1, '|')+1) ;
+	  DPRINTF("Computed : %s\n", results) ;
 	  DPRINTF("  ->%s\n",
-		  strchr(strchr(results+1,'|')+1, '|')+1)
+		  strchr(strchr(results+1,'|')+1, '|')+1) ;
 #endif
 	  /* Search for 3rd | in string */
 	  if( atof(strchr(strchr(&recv_results[1],'|')+1, '|')+1)
@@ -816,7 +822,7 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
 	  gettimeofday(&tv, NULL);
 	  DPRINTF("%ld.%ld: %d launches MPI_Irecv(), any source\n",
-		  tv.tv_sec, tv.tv_usec, my_num)
+		  tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
 	  MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
 		    MPI_ANY_SOURCE, 
@@ -848,14 +854,14 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
     gettimeofday(&tv, NULL);
     DPRINTF("%ld.%ld: %d launches MPI_Cancel()\n",
-	    tv.tv_sec, tv.tv_usec, my_num)
+	    tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
     MPI_Cancel( &(the_message->handle) ) ;
     MPI_Wait( &(the_message->handle), MPI_STATUS_IGNORE ) ;
 #ifdef DEBUG_MPI_ENDING
     gettimeofday(&tv, NULL);
     DPRINTF("%ld.%ld: %d finished Waiting of canceled msg\n",
-	    tv.tv_sec, tv.tv_usec, my_num)
+	    tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
     /* Reuse buffer */
     the_message->message[1] = 0 ;
@@ -865,7 +871,7 @@ main(int argc, char *argv[])
 #ifdef DEBUG_MPI_ENDING
     gettimeofday(&tv, NULL);
     DPRINTF("%ld.%ld: %d aborting\n",
-	    tv.tv_sec, tv.tv_usec, my_num)
+	    tv.tv_sec, tv.tv_usec, my_num) ;
 #endif  
   } /* Proc N // Proc 0 */
   
