@@ -298,6 +298,33 @@ Random_Interval(int inf, int sup)
   return (int) (Random_Double() * (sup - inf + 1)) + inf;
 }
 
+/*
+ *  RANDOM_ARRAY_PERMUT
+ *
+ *  Generate a random permutation of a given vector of size elements.
+ *
+ *  Use the following shuffle (Durstenfeld implementation of Fisher-Yates shuffle)
+ *
+ *  To shuffle an array a of n elements:
+ *  for(i = size   1; i >= 1; i--) {
+ *    j = random number in [0..i]
+ *    swap vec[i] and vec[j]
+ *  }
+ */
+
+void
+Random_Array_Permut(int *vec, int size)
+{  
+  int i, j, z;
+
+  for(i = size - 1; i > 0; i--)
+    {
+      j = Random(i + 1);
+      z = vec[i];
+      vec[i] = vec[j];
+      vec[j] = z;
+    }
+}
 
 
 /*
@@ -307,7 +334,7 @@ Random_Interval(int inf, int sup)
  *  - of values in base_value..base_value+size-1 (if actual_value == NULL)
  *  - of values in actual_value[] + base_value
  *
- *  Use the following shuffle (Durstenfeld implemetation of Fisher-Yates shuffle)
+ *  Use the following shuffle (Durstenfeld implementation of Fisher-Yates shuffle)
  *
  *  vec[0] = source[0];
  *  for(i = 1; i < size; i++) {

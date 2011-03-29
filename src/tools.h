@@ -72,6 +72,8 @@ void		randChaosInit		(void);
 double		randChaosDouble		(void);
 unsigned int	randChaosInt		(unsigned int n);
 
+void Random_Array_Permut(int *vec, int size);
+
 void Random_Permut(int *vec, int size, const int *actual_value, int base_value);
 
 void Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_value);
