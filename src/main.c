@@ -337,7 +337,7 @@ main(int argc, char *argv[])
     p_ad->seed = Randomize();
 #endif /* MPI */
 
-  /* Initialisation of pseudo-random generator with the seed */
+  /* Initialization of the pseudo-random generator with the seed */
   srandom((unsigned)p_ad->seed);
 
   p_ad->nb_var_to_reset = -1;
