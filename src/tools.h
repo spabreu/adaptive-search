@@ -9,6 +9,7 @@
 #ifndef AS_TOOLS_H
 #define AS_TOOLS_H
 
+#include <limits.h>
 #include <stdio.h>              /* printf() */
 #include "tools_MPI.h"
 
@@ -31,6 +32,14 @@
 #if !defined(PRINT0)
 #define PRINT0(...) DPRINTF(...)
 #endif
+
+/*
+ * For linear chaotic map functions
+ */
+# define DELTA_A	4
+# define DELTA_C	4
+# define OFFSET		16
+
 
 /*-------*
  * Types *
@@ -58,6 +67,10 @@ int Random_Interval(int inf, int sup);
 
 double Random_Double(void);
 
+int		randChaos		(int max, int *var_last, int *var_a, int *var_c);
+void		randChaosInit		(void);
+double		randChaosDouble		(void);
+unsigned int	randChaosInt		(unsigned int n);
 
 void Random_Permut(int *vec, int size, const int *actual_value, int base_value);
 

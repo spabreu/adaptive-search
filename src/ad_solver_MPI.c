@@ -271,7 +271,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
       /******************************* COMM_COST ****************/
 #  if defined COMM_COST
       if( (unsigned)p_ad->total_cost > mixed_received_msg_cost ) {
-	ran_tmp=(((float)rand())/RAND_MAX)*100 ;
+	ran_tmp=(((float)random())/RAND_MAX)*100 ;
 #    if defined YC_DEBUG	  
 	DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		my_num,
@@ -298,7 +298,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
       if( (unsigned)p_ad->total_cost > mixed_received_msg_cost ) {
 	if( mixed_received_msg_iter < p_ad->nb_iter ) {
 	  
-	  ran_tmp=(((float)rand())/RAND_MAX)*100 ;
+	  ran_tmp=(((float)random())/RAND_MAX)*100 ;
 #    if defined YC_DEBUG	  
 	  DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		  my_num,

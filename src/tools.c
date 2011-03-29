@@ -36,6 +36,9 @@
  *------------------*/
 
 static long start_real_time = 0;
+static unsigned int	last;
+static unsigned int	a;
+static unsigned int	c;
 
 
 /*------------*
@@ -141,6 +144,83 @@ Random_Double(void)
 }
 
 
+/**
+ * randChaos
+ *
+ * Take an integer n and set "last" to 
+ * a random value in [0..max-1].
+ *
+ * This function is actually a one-dimensional
+ * chaotic map using parameters a and c as well 
+ * as constants DELTA_A and DELTA_C
+ *
+ */
+int randChaos(int max, int *var_last, int *var_a, int *var_c)
+{
+  int tmp;
+
+  tmp = (*var_a * *var_last + *var_c) % max;
+  // Offset of 16 since we use 32-bit integer
+  // Good results with offset = (bit length / 2)
+  *var_last = tmp ^ (tmp >> OFFSET);
+  *var_a = (*var_a + DELTA_A) % max;
+  *var_c = (*var_c + DELTA_C) % max;
+
+  return *var_last;
+}
+
+
+/**
+ * randChaosInit
+ *
+ * Initialise static variables used 
+ * by randChaosDouble
+ *
+ */
+void randChaosInit(void)
+{
+  srandom(time(NULL));
+  last = Random(UINT_MAX);
+  a = 5;
+  c = 1;
+}
+
+
+/**
+ * randChaosDouble
+ *
+ * Returns a random value in [0..1[.
+ *
+ * This function is actually a one-dimensional
+ * chaotic map using parameters a and c as well 
+ * as constants DELTA_A and DELTA_C
+ *
+ * MAKE SURE randChaosInit() HAS BEEN CALLED FIRST!
+ *
+ */
+double randChaosDouble(void) 
+{
+  unsigned int tmp;
+
+  tmp = (a * last + c) % UINT_MAX;
+  last = tmp ^ (tmp >> OFFSET);
+  a = (a + DELTA_A) % UINT_MAX;
+  c = (c + DELTA_C) % UINT_MAX;
+
+  return ((double)last) / UINT_MAX;  
+}
+
+
+/**
+ * randChaosInt
+ *
+ * Returns a random value in [0..n-1].
+ *
+ */
+unsigned int randChaosInt(unsigned int n)
+{
+  return (unsigned int) (randChaosDouble() * n);
+}
 
 
 /*
