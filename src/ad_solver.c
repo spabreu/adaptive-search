@@ -587,7 +587,7 @@ Ad_Solve(AdData *p_ad)
 #if defined MPI
       if( Ad_Solve_manage_MPI_communications( & mpi_data, & ad ) == 10 )
 	goto restart ;
-#endif MPI
+#endif /* MPI */
 
 #ifdef CELL_COMM
       int comm_cost = (1 << 30);

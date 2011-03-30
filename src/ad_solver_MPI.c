@@ -11,6 +11,7 @@
 #include "tools_MPI.h"
 #include <math.h>       /* ceil() */
 #include <stdlib.h>     /* free() */
+#include <unistd.h>     /* sleep() */
 
 /*----------------------*
  * Constants and macros
