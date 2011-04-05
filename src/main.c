@@ -163,6 +163,7 @@ main(int argc, char *argv[])
 #endif /* MPI */
 
   Parse_Cmd_Line(argc, argv, p_ad);
+  printf("Program: %s\n", argv[0]) ;
 
 #if defined MPI
   /***************************** Init MPI ************************************/
@@ -192,48 +193,45 @@ main(int argc, char *argv[])
   snprintf(list_allocated_msgs.text,20,"Allocated msgs") ;
 #endif /* YC_DEBUG_QUEUE */
 
-  /**************************** Initialize chaotic function **********************/
-  param_a = 5;
+  /************************ Initialize chaotic function **********************/
+  param_a = 5;                      /* Values by default from research paper */
   param_c = 1;
-
-
   /**************************** Initialize seed phase 1 **********************/
   generatedSeed = (int*) malloc(sizeof(int) * mpi_size);
-  if (generatedSeed == NULL)
-    {
-      printf("%s:%d malloc failed\n", __FILE__, __LINE__);
-      exit(1);
-    }
+  if (generatedSeed == NULL) {
+    printf("%s:%d malloc failed\n", __FILE__, __LINE__);
+    exit(1);
+  }
 
   if (my_num == 0) {
-      int i;
+    int i;
+    
+    if (p_ad->seed < 0) {
+      gettimeofday(&tv, NULL);
+      srandom((unsigned int)tv.tv_sec);
       
-      if (p_ad->seed < 0) {
-	  gettimeofday(&tv, NULL);
-	  srandom((unsigned int)tv.tv_sec);
-	 
-	  // INT_MAX / 6 (= 357.913.941) is a reasonable value to start with... I think...
-	  last_value = (int) Random(INT_MAX / 6);
+      /* INT_MAX / 6 (= 357.913.941) is a reasonable value to start with... 
+	 I think... */
+      last_value = (int) Random(INT_MAX / 6);
+      
+      /* INT_MAX (= 2.147.483.647) is the max value for a signed 32-bit int */
+      p_ad->seed = randChaos(INT_MAX, &last_value, &param_a, &param_c);
+    }
 
-	  // INT_MAX (= 2.147.483.647) is the max value for a signed 32-bit int
-	  p_ad->seed = randChaos(INT_MAX, &last_value, &param_a, &param_c);
-	}
+    print_seed = p_ad->seed;
+    generatedSeed[0] = p_ad->seed;
 
-      print_seed = p_ad->seed;
-      generatedSeed[0] = p_ad->seed;
-
-      for(i = 1; i < mpi_size; ++i)
-	generatedSeed[i] = randChaos(INT_MAX, &last_value, &param_a, &param_c);
-    }      
+    for(i = 1; i < mpi_size; ++i)
+      generatedSeed[i] = randChaos(INT_MAX, &last_value, &param_a, &param_c);
+  }      
   
   MPI_Scatter(&generatedSeed[0], 1, MPI_INT, &p_ad->seed, 1, MPI_INT,
 	      0, MPI_COMM_WORLD);
 
-# if defined YC_DEBUG  
+#if defined YC_DEBUG  
   DPRINTF("Proc %d received seed %ld\n\n", my_num, p_ad->seed);
-# endif
+#endif
 
-  PRINT0("Program: %s\n", argv[0]) ;
   PRINT0("Number of procs used: %d\n",mpi_size) ;
   /* Print compilation options */
   PRINT0("Compilation options:\n") ;
@@ -287,7 +285,7 @@ main(int argc, char *argv[])
 
 #if defined PRINT_COSTS
   if( filename_pattern_print_cost==NULL ) {
-    PRINT0("Please give a pattern in which to save costs\n\n") ;
+    PRINT0("Please give a pattern for filename in which to save costs\n\n") ;
     exit(-1) ;
   }
   tmp_filename=(char*)
@@ -319,7 +317,8 @@ main(int argc, char *argv[])
     push_tegami_on( (tegami*)malloc(sizeof(tegami)),
 		    &list_allocated_msgs) ;
   PRINT0("Prepared %d messages!\n", nb_stocked_messages) ;
-  /*************************** Launch async recv: will act as mailbox */
+
+  /*************************** Launch async recv: will act as mailbox ********/
   the_message = get_tegami_from( &list_allocated_msgs) ;
 
 #if defined YC_DEBUG_MPI
@@ -333,13 +332,13 @@ main(int argc, char *argv[])
 	    MPI_COMM_WORLD, &(the_message->handle)) ;
     
 #else /* MPI */
-  printf("Program: %s\n", argv[0]) ;
   if (p_ad->seed < 0) {
     gettimeofday(&tv, NULL);
     srandom((unsigned int)tv.tv_sec);
-    // INT_MAX / 6 (= 357.913.941) is a reasonable value to start with... I think...
+    /* INT_MAX / 6 (= 357.913.941) is a reasonable value to start with... 
+       I think... */
     last_value = (int) Random(INT_MAX / 6);
-    // INT_MAX (= 2.147.483.647) is the max value for a signed 32-bit int
+    /* INT_MAX (= 2.147.483.647) is the max value for a signed 32-bit int */
     p_ad->seed = randChaos(INT_MAX, &last_value, &param_a, &param_c);
   }
   print_seed = p_ad->seed;
@@ -692,8 +691,8 @@ main(int argc, char *argv[])
   /* From now, time is not crucial anymore... */
   /* Perform a broadcast to kill everyone since I have the solution */
   
-#if defined DEBUG_MPI_ENDING
-  DPRINTF("Proc %d enters TERM MASTER finishing!\n", my_num) ;
+#if defined DEBUG_MPI
+  DPRINTF("Proc %d enters finishing state!\n", my_num) ;
 #endif
 
   if( my_num != 0 ) { 

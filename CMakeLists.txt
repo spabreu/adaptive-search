@@ -33,9 +33,11 @@ set(AS_BUILD_VERSION ${BUILD_DATE})
 # ---------------------------------------------------------------------------
 # Seq => !MPI && !CELL ++ MPI => !Seq && !CELL ++ CELL => !Seq && !MPI 
 
-# Save compiler, in case of future modifications and undo
+# Save compiler, in case of MPI/Seq/Cell modifications and undo
 SET(CMAKE_C_COMPILER_SAV ${CMAKE_C_COMPILER} )
 SET(CMAKE_CXX_COMPILER_SAV ${CMAKE_CXX_COMPILER} )
+
+#variable_watch( AS_USE_SEQ )
 
 if (AS_USE_SEQ)
   if (AS_USE_MPI)
