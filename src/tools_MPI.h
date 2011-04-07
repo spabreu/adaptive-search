@@ -20,6 +20,10 @@
 #  include <assert.h>
 #endif
 
+#if defined DEBUG_MPI_ENDING && !defined DISPLAY_0
+#define DISPLAY_ALL 1
+#endif
+
 
 /*----------------------*
  * Constants and macros

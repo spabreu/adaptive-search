@@ -149,7 +149,7 @@ void print_costs()
   writen(file_descriptor_print_cost, line, strlen(line)) ;
 
   for( i=0 ; i<=card_vec_costs ; i++ ) {
-    sprintf(line,"%ld    %d\n", i, vec_costs[i]) ;
+    sprintf(line,"%ld    %d   %d\n", i, vec_costs[i], my_num) ;
     writen(file_descriptor_print_cost, line, strlen(line)) ;
   }
   sprintf(line,"*** Fin Costs for %d\n", my_num);

@@ -18,13 +18,13 @@
 #include <math.h>
 #include <time.h>                         /* time() */
 #include <limits.h>                       /* To initiate first random seed */
-#  if defined PRINT_COSTS
+#if defined PRINT_COSTS
 #include <unistd.h>                       /* sleep() */
 #include <sys/types.h>                    /* open()... */
 #include <sys/stat.h>                     /* and S_IRUSR... */
 #include <fcntl.h>                        /* and O_WDONLY */
 #include <string.h>                       /* strdup() */
-#  endif
+#endif
 #endif /* MPI */
 
 #include "ad_solver.h"
@@ -691,8 +691,16 @@ main(int argc, char *argv[])
   /* From now, time is not crucial anymore... */
   /* Perform a broadcast to kill everyone since I have the solution */
   
-#if defined DEBUG_MPI
+#if (defined DEBUG_MPI) || (defined MPI_ABORT)
   DPRINTF("Proc %d enters finishing state!\n", my_num) ;
+#endif
+#if defined MPI_ABORT
+  printf("%s\n", results) ;
+  gettimeofday(&tv, NULL) ;
+  DPRINTF("%ld.%ld: %d launches MPI_Abort()!\n",
+	    tv.tv_sec, tv.tv_usec, my_num) ;
+  MPI_Abort(MPI_COMM_WORLD, my_num) ;
+  exit(0) ;
 #endif
 
   if( my_num != 0 ) { 
@@ -700,7 +708,7 @@ main(int argc, char *argv[])
     /****** Use *Log(n) + 1*  algo */
     /*** Send LS_KILLALL to 0 -> no real message => no need to init */
     /* But proc 0 can also be in that step, so Isend() mandatory! */
-    tmp_message = get_tegami_from( &list_allocated_msgs) ;
+    tmp_message = get_tegami_from( &list_allocated_msgs ) ;
     /*    tmp_message->message[1] = my_num ; */
 #ifdef DEBUG_MPI_ENDING
     gettimeofday(&tv, NULL);
@@ -711,7 +719,7 @@ main(int argc, char *argv[])
 	      0,
 	      LS_KILLALL, MPI_COMM_WORLD,
 	      &(tmp_message->handle)) ;
-    push_tegami_on( tmp_message, &list_sent_msgs) ;
+    push_tegami_on( tmp_message, &list_sent_msgs ) ;
     /* Loop on all received msg. Drop all except LS_KILLALL */
 #ifdef DEBUG_MPI_ENDING
     gettimeofday(&tv, NULL);
@@ -720,23 +728,22 @@ main(int argc, char *argv[])
 #endif
     do {
 #ifdef DEBUG_MPI_ENDING
-	gettimeofday(&tv, NULL);
-	DPRINTF("  - %ld.%ld: %d launches MPI_Wait()\n",
-		tv.tv_sec, tv.tv_usec, my_num) ;
+      gettimeofday(&tv, NULL);
+      DPRINTF("  - %ld.%ld: %d launches MPI_Wait()\n",
+	      tv.tv_sec, tv.tv_usec, my_num) ;
 #endif
       MPI_Wait(&(the_message->handle), &(the_message->status)) ;
 #ifdef DEBUG_MPI_ENDING
-	gettimeofday(&tv, NULL);
-	DPRINTF("  - %ld.%ld: %d recvd value (%d;%d) protocol %s from %d\n",
-		tv.tv_sec, tv.tv_usec, my_num,
-		the_message->message[0],
-		the_message->message[1],
-		protocole_name[the_message->status.MPI_TAG],
-		the_message->status.MPI_SOURCE) ;
+      gettimeofday(&tv, NULL);
+      DPRINTF("  - %ld.%ld: %d recvd value (%d;%d) protocol %s from %d\n",
+	      tv.tv_sec, tv.tv_usec, my_num,
+	      the_message->message[0],
+	      the_message->message[1],
+	      protocole_name[the_message->status.MPI_TAG],
+	      the_message->status.MPI_SOURCE) ;
 #endif
       if( the_message->status.MPI_TAG != LS_KILLALL ) {
-	push_tegami_on( the_message, &list_allocated_msgs) ;
-	the_message = get_tegami_from( &list_allocated_msgs) ;
+	/* Launch new rcv for input comm */
 #ifdef DEBUG_MPI_ENDING
 	gettimeofday(&tv, NULL);
 	DPRINTF("%ld.%ld: %d launches MPI_Irecv(), ANY_TAG, any source\n",
@@ -748,8 +755,8 @@ main(int argc, char *argv[])
 		  MPI_COMM_WORLD, &(the_message->handle)) ;
       } 
     } while( the_message->status.MPI_TAG != LS_KILLALL ) ;
-#ifdef DEBUG_MPI_ENDINF
-    DPRINTF("%d received msg from %d that %d finished first\n\n",
+#ifdef DEBUG_MPI_ENDING
+    DPRINTF("%d received msg from %d that %d finished.\n\n",
 	    my_num, the_message->status.MPI_SOURCE, the_message->message[1]) ;
 #endif 
     /* Kill sub-range proc */
@@ -765,18 +772,20 @@ main(int argc, char *argv[])
       MPI_Send( results, RESULTS_CHAR_MSG_SIZE, MPI_CHAR,
 		0, SENDING_RESULTS,
 		MPI_COMM_WORLD) ;
-#ifdef DEBUG_MPI_ENDING
-      gettimeofday(&tv, NULL);
-      DPRINTF("%ld.%ld: %d calls MPI_Finalize()\n",
-	      tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+    } /* if( the_message->message[1] == (unsigned)my_num ) */
+    /* Finishing for all processes (!=0) */
 #ifdef PRINT_COSTS
-      print_costs() ;
+    print_costs() ;
 #endif
-      MPI_Finalize() ;
-    }
-  } else { 
-    /*********************************** Proc 0 ! ****************************/
+#ifdef DEBUG_MPI_ENDING
+    gettimeofday(&tv, NULL);
+    DPRINTF("%ld.%ld: %d calls MPI_Finalize()\n",
+	    tv.tv_sec, tv.tv_usec, my_num) ;
+#endif
+    MPI_Finalize() ;
+    dead_end_final() ;
+    exit(0) ;
+  } else { /************************** Proc 0 ! ****************************/
     /* Check if we received a LS_KILLALL before we finished the calculus */
 #ifdef DEBUG_MPI_ENDING
     DPRINTF("%d checks if we received LS_KILLALL in last msgs...\n", my_num) ;
@@ -902,13 +911,11 @@ main(int argc, char *argv[])
     gettimeofday(&tv, NULL);
     DPRINTF("%ld.%ld: %d aborting\n",
 	    tv.tv_sec, tv.tv_usec, my_num) ;
-#endif  
-  } /* Proc N // Proc 0 */
-  
+#endif
   dead_end_final() ;
+  exit(0) ;
+  } /* Proc N // Proc 0 */
 #endif /* MPI */
-
-  return 0;
 }
 
 

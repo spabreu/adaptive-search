@@ -43,7 +43,7 @@ unsigned int count_to_communication ; /* nb of iter before checking
 					 receive of msg */
 #define NBMAXSTEPS 16               /* log2 nbprocs */
 typedef enum {                      /* Add a protocol => update ad_solver.c! */
-  LS_KILLALL,                       /* msg = [range ; proc finished] */
+  LS_KILLALL=10,                       /* msg = [range ; proc finished] */
   SENDING_RESULTS,
   LS_COST,                          /* msg = [range ; cost] */
   LS_NBMSGS,
