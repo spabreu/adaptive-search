@@ -74,10 +74,11 @@ IF (NOT AS_USE_SEQ)
    ENDIF (NOT AS_USE_MPI)
 ENDIF (NOT AS_USE_SEQ)
 
-option(AS_USE_MPI    "Build AS with MPI support." OFF)
-option(AS_USE_CELL   "Build AS with Cell support." OFF)
-option(AS_USE_SEQ    "Build AS in sequential." ON)
-option(AS_USE_DEBUG  "Build AS with Debug mode." OFF)
+option(AS_PRINT_COSTS		"Build AS with COST printing support." OFF)
+option(AS_USE_MPI              	"Build AS with MPI support." OFF)
+option(AS_USE_CELL             	"Build AS with Cell support." OFF)
+option(AS_USE_SEQ              	"Build AS in sequential." ON)
+option(AS_USE_DEBUG            	"Build AS with Debug mode." OFF)
 # TODO: PRINT_COSTS
 
 # --------------------- DEPENDENCIES TOWARDS "CLASSIC" C++ HEADERS ---------
@@ -291,6 +292,10 @@ endif (AS_USE_CELL)
 if (AS_USE_MPI) 
    add_definitions(-DMPI=1)
 endif (AS_USE_MPI)
+
+if (AS_PRINT_COSTS) 
+   add_definitions(-DPRINT_COSTS=1)
+endif (AS_PRINT_COSTS)
 
 # --------------------------------------------------------------------------
 add_subdirectory(src)
