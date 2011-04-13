@@ -37,8 +37,6 @@ set(AS_BUILD_VERSION ${BUILD_DATE})
 SET(CMAKE_C_COMPILER_SAV ${CMAKE_C_COMPILER} )
 SET(CMAKE_CXX_COMPILER_SAV ${CMAKE_CXX_COMPILER} )
 
-#variable_watch( AS_USE_SEQ )
-
 if (AS_USE_SEQ)
   if (AS_USE_MPI)
     set(AS_USE_MPI OFF CACHE BOOL "MPI support" FORCE)
@@ -79,7 +77,9 @@ option(AS_USE_MPI              	"Build AS with MPI support." OFF)
 option(AS_USE_CELL             	"Build AS with Cell support." OFF)
 option(AS_USE_SEQ              	"Build AS in sequential." ON)
 option(AS_USE_DEBUG            	"Build AS with Debug mode." OFF)
-# TODO: PRINT_COSTS
+option(AS_USE_ABORT            	"Build AS with Abort termination." OFF)
+option(AS_USE_BARRIER          	"Build AS with Barrier Sync. beginning." OFF)
+
 
 # --------------------- DEPENDENCIES TOWARDS "CLASSIC" C++ HEADERS ---------
 # This is just a convenience to advance the detection of any potential missing
@@ -276,7 +276,7 @@ ENDIF( CMAKE_COMPILER_IS_GNUCC )
 # ------------------ PROJECT DEFINITION ---------------------
 
 IF (AS_USE_DEBUG)
-    add_definitions(-DDEBUG=1)
+    add_definitions(-DDEBUG=1 -DYC_DEBUG=1 -DYC_DEBUG_MPI=1 -Wall -fPIC)
 ELSE (AS_USE_DEBUG)
     add_definitions(-DDEBUG=0)
 ENDIF (AS_USE_DEBUG)
@@ -296,6 +296,15 @@ endif (AS_USE_MPI)
 if (AS_PRINT_COSTS) 
    add_definitions(-DPRINT_COSTS=1)
 endif (AS_PRINT_COSTS)
+
+if (AS_USE_ABORT) 
+   add_definitions(-DMPI_ABORT=1)
+endif (AS_USE_ABORT)
+
+if (AS_USE_BARRIER) 
+   add_definitions(-DMPI_BEGIN_BARRIER=1)
+endif (AS_USE_BARRIER)
+
 
 # --------------------------------------------------------------------------
 add_subdirectory(src)
