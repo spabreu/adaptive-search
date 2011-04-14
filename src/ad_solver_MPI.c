@@ -9,9 +9,11 @@
 
 #include "ad_solver_MPI.h"
 #include "tools_MPI.h"
-#include <math.h>       /* ceil() */
-#include <stdlib.h>     /* free() */
-#include <unistd.h>     /* sleep() */
+#include <math.h>               /* ceil() */
+#include <stdlib.h>             /* free() */
+#include <unistd.h>             /* sleep() */
+#include <time.h>               /* time() */
+#include <sys/time.h>           /* gettimeofday() */
 
 /*----------------------*
  * Constants and macros
@@ -23,6 +25,7 @@
 
 char * protocole_name [LS_NBMSGS] =
   {
+    "Not a protocol",
     "Killall",
     "Sending results",
     "Sending cost"
@@ -35,6 +38,25 @@ char * protocole_name [LS_NBMSGS] =
 /*------------*
  * Prototypes *
  *------------*/
+
+#if defined PRINT_COSTS
+void print_costs()
+{
+  unsigned long int i ;
+  
+  char line[200] ;
+  
+  sprintf(line,"*** Costs for %d\n", my_num);
+  writen(file_descriptor_print_cost, line, strlen(line)) ;
+
+  for( i=0 ; i<=card_vec_costs ; i++ ) {
+    sprintf(line,"%ld    %d   %d\n", i, vec_costs[i], my_num) ;
+    writen(file_descriptor_print_cost, line, strlen(line)) ;
+  }
+  sprintf(line,"*** Fin Costs for %d\n", my_num);
+  writen(file_descriptor_print_cost, line, strlen(line)) ;
+}
+#endif /* defined PRINT_COSTS */
 
 void
 Ad_Solve_init_MPI_data( Ad_Solve_MPIData * mpi_data )
@@ -154,12 +176,9 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
 	    printf("%s\n", results) ;
 #if defined PRINT_COSTS
 	    print_costs() ;
-	    printf("*** 0 launches MPI_Abort() in %d secs\n", mpi_size*3);
-	    sleep(mpi_size*3) ;
 #endif
-	    printf("*** 0 launches MPI_Abort()\n");
-	    MPI_Abort(MPI_COMM_WORLD, my_num) ;
-	    /* dead_end_final() ; */
+	    MPI_Finalize() ;
+	    dead_end_final() ;
 	    exit(0) ;
 	  } else {                                  /* Proc N */
 	    /* S.o finished before me. I killall the ones I'm responsible */
@@ -167,12 +186,9 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
 #if defined PRINT_COSTS
 	    print_costs() ;
 #endif
-	    /* Wait for proc 0 to call MPI_Abort() */
-	    sleep(mpi_size*4) ;
-	    DPRINTF("*** %d should never print this:"
-		    " means that proc 0 spent more than %d"
-		    " sec to call MPI_Abort()\n",
-		    my_num, mpi_size*4) ;
+	    MPI_Finalize() ;
+	    dead_end_final() ;
+	    exit(0) ;
 	  }
 	  break ;
 #if (defined COMM_COST) || (defined ITER_COST)
@@ -356,9 +372,9 @@ void
 dead_end_final()
 {
   int flag = 0 ;          /* .. if operation completed */
-#if defined DEBUG_MPI_ENDING
   struct timeval tv ;
-#endif
+
+  return ;
 
   /*  printf("MPI_Finalize() sans free\n") ;
   MPI_Finalize() ;
@@ -394,12 +410,6 @@ dead_end_final()
     /*    free( the_message ) ; */
   }
 
-  /*  MPI_Finalize() ;
-  gettimeofday(&tv, NULL);
-  printf("%ld.%ld: %d MPI_Finalize()\n",
-           tv.tv_sec, tv.tv_usec, my_num) ;
-  return ;
-  */
   while( list_allocated_msgs.next != NULL ) {
     the_message = get_tegami_from( &list_allocated_msgs) ;
     free( the_message ) ;
@@ -414,7 +424,6 @@ dead_end_final()
   /* free all remainding structures */
   /* Arimasu ka? */
   
-#if defined DEBUG_MPI_ENDING
   gettimeofday(&tv, NULL);
   printf("%ld.%ld: %d MPI_Finalize()...\n",
 	 tv.tv_sec, tv.tv_usec, my_num) ;
@@ -422,11 +431,6 @@ dead_end_final()
   gettimeofday(&tv, NULL);
   printf("%ld.%ld: %d MPI_Finalize() done\n",
 	 tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
-  /*
-    date_end = MPI_Wtime() ;
-    DPRINTF("Elapsed time inside MPI is %f\n",date_end-date_begin);
-  */
 }
 
 /* msg must be same type than message in ad_solver.h */
@@ -439,11 +443,9 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
   tegami * message ;
   unsigned int destination_node ;
 
-#if defined YC_DEBUG
-  unsigned int sentNodes[NBMAXSTEPS] ; /* In fact, Log2(n)! */
-#endif
 #if defined YC_DEBUG_MPI
   struct timeval tv ;
+  unsigned int sentNodes[NBMAXSTEPS] ; /* In fact, Log2(n)! */
 #endif
 
   /* TODO: We should try to aggregate some sent_msg */
@@ -482,7 +484,7 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
   }
 #endif
 
-  for( i=1 ; i<= nb_steps ; i++ ) {
+  for( i=1 ; i<= nb_steps ; ++i ) {
     message = get_tegami_from( &list_allocated_msgs) ;
 
 #if defined ITER_COST
@@ -499,10 +501,10 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
     range = range - message->message[0] ;
 
 #if defined YC_DEBUG_MPI
-#  if defined COMM_COST
     /* Send to ... */
     gettimeofday(&tv, NULL);
     sentNodes[i-1] = destination_node ;
+#if defined COMM_COST
     DPRINTF("%ld:%ld: Proc %d sends msg %d protocol %s range %d to %d !\n",
 	    tv.tv_sec, tv.tv_usec,
 	    my_num,
@@ -510,8 +512,7 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
 	    protocole_name[tag_mpi],
 	    message->message[0],
 	    sentNodes[i-1]) ;
-#  endif /* COMM_COST */
-#  if defined ITER_COST
+#elif defined ITER_COST
     /* Send to ... */
     gettimeofday(&tv, NULL);
     sentNodes[i-1] = destination_node ;
@@ -523,7 +524,7 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
 	    protocole_name[tag_mpi],
 	    message->message[0],
 	    sentNodes[i-1]) ;
-#  endif /* ITER_COST */
+#endif
 #endif /* YC_DEBUG_MPI */
     /* Sends */
     MPI_Isend(message->message, SIZE_MESSAGE, MPI_INT,
@@ -531,9 +532,9 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
 	      tag_mpi, MPI_COMM_WORLD, &(message->handle)) ;
     push_tegami_on( message, &list_sent_msgs) ;
   }
-#if defined YC_DEBUG
+#if defined YC_DEBUG_MPI
   DPRINTF("-- %d sent to [", my_num) ;
-  for( i=0 ; i< nb_steps ; i++ )
+  for( i=0 ; i< nb_steps ; ++i )
     DPRINTF(" %d ", sentNodes[i] ) ;
   DPRINTF("] \n" ) ;
 #endif

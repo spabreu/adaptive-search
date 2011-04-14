@@ -45,6 +45,69 @@ static unsigned int	c;
  * Prototypes *
  *------------*/
 
+#if defined PRINT_COSTS
+/* Read n entries */
+int
+readn( int fd, char * buffer, int n )
+{
+  int nread;
+  int nleft;
+  char * ptr;
+
+  ptr = buffer ;
+  nleft = n;
+  while( nleft != 0 ) {
+    if( (nread = read(fd, ptr, nleft)) < 0 ) {
+      if( nread < 0 )       // ERROR
+	switch(errno) {
+	case EBADF:
+	  printf("File descriptor unvalid or not open for reading") ;
+	  return 0 ;
+	case EFAULT:
+	  printf("Buffer pointe en dehors de l'espace d'adressage") ;
+	  return 0 ;
+	case EINVAL:
+	  printf("EINVAL") ;
+	  return 0 ;
+	case EIO:
+	  printf("EIO") ;
+	  return 0 ;
+	default:
+	  printf("Undefined") ;
+	  return 0 ;
+	}
+	return( 0 ) ;
+    } else if( nread == 0 ) /* EOF */
+      break ;
+    nleft -= nread;
+    ptr += nread;
+  }
+  return( n-nleft ) ;
+}
+/* Write n entries */
+size_t
+writen( int fd, const char * buffer, size_t n )
+{
+  size_t nleft;
+  size_t nwritten;
+  const char * ptr;
+  
+  ptr = buffer ;
+  nleft = n ;
+  while( nleft > 0 ) {
+    if( (nwritten = write(fd, ptr, nleft)) <= 0 ) {
+      if( errno == EINTR )
+	nwritten = 0 ;	/* and call write() again */
+      else
+	return( 0 ) ;	/* error */
+    }
+    nleft -= nwritten ;
+    ptr   += nwritten ;
+  }
+  return(n) ;
+}
+#endif /* PRINT_COSTS */
+
 /*
  *  USER_TIME
  *

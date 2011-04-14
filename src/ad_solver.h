@@ -111,9 +111,21 @@ int ad_has_log_file = 1;
 int ad_has_log_file;
 #endif
 
+#if defined PRINT_COSTS
+int nb_digits_nbprocs ;             /* for exple, 128 procs -> 3 */
+int file_descriptor_print_cost ;
+#endif
+
+int my_num ;                        /* used for MPI and seq code */
+
 /*------------*
  * Prototypes *
  *------------*/
+
+#if defined PRINT_COSTS
+void
+print_costs() ;
+#endif
 
 int Ad_Solve(AdData *p_ad);
 

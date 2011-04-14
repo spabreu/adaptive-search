@@ -16,7 +16,9 @@
 #include <limits.h> /* INT_MAX */
 #include <assert.h> /* For assert(). gcc -D NDEBUG to get ride of tests */
 #if defined YC_DEBUG
-#  define YC_DEBUG_MPI
+#if !defined( YC_DEBUG_MPI )
+#define YC_DEBUG_MPI
+#endif
 #  define YC_DEBUG_RESTART
 #  include <sys/time.h> /* gettimeofday() */
 #endif /* YC_DEBUG */
@@ -32,28 +34,21 @@
  *----------------------*/
 
 /* #define AD_SOLVE_MANAGE_MPI_COMM(...)  */
+#define CBLOCK_DEFAULT 2000
 
 /*-------*
  * Types *
  *-------*/
 
-int my_num, mpi_size ;
-int nb_digits_nbprocs ;             /* for exple, 128 procs -> 3 */
-unsigned int count_to_communication ; /* nb of iter before checking 
-					 receive of msg */
 #define NBMAXSTEPS 16               /* log2 nbprocs */
 typedef enum {                      /* Add a protocol => update ad_solver.c! */
-  LS_KILLALL=10,                       /* msg = [range ; proc finished] */
+  NOT_A_PROTOCOL,
+  LS_KILLALL,                       /* msg = [range ; proc finished] */
   SENDING_RESULTS,
   LS_COST,                          /* msg = [range ; cost] */
   LS_NBMSGS,
   SEED
 } protocol_msg ;                    /* All kind of messages between processus */
-char * protocole_name [LS_NBMSGS] ; /* Instanciated in ad_solver.c! */
-tegami * the_message ;              /* Used as temporary variable */
-tegami list_sent_msgs ;
-tegami list_allocated_msgs ;        /* Careful: msgs not initialized! */
-tegami list_recv_msgs ;
 
 typedef struct
 {
@@ -83,22 +78,26 @@ typedef struct
 #endif
 } Ad_Solve_MPIData ;
 
+/*------------------*
+ * Global variables *
+ *------------------*/
+
+int mpi_size ;
+unsigned int count_to_communication ; /* nb of iter before checking 
+					 receive of msg */
+char * protocole_name [LS_NBMSGS] ; /* Instanciated in ad_solver.c! */
+tegami * the_message ;              /* Used as temporary variable */
+tegami list_sent_msgs ;
+tegami list_allocated_msgs ;        /* Careful: msgs not initialized! */
+tegami list_recv_msgs ;
+
 #if (defined COMM_COST) || (defined ITER_COST)
 unsigned int proba_communication ;  /* > (rand*100) -> sends cost */
-#endif
-
-#if defined PRINT_COSTS
-int file_descriptor_print_cost ;
 #endif
 
 /*------------*
  * Prototypes *
  *------------*/
-
-#if defined PRINT_COSTS
-void
-print_costs() ;
-#endif
 
 /* Initialize structure fields */
 void

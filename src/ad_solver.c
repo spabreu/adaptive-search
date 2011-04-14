@@ -138,24 +138,24 @@ Error_All_Marked()
 }
 #endif
 
-#ifdef PRINT_COSTS
+#if (defined PRINT_COSTS) && !(defined MPI)
 void print_costs()
 {
   unsigned long int i ;
   
   char line[200] ;
   
-  sprintf(line,"*** Costs for %d\n", my_num);
+  sprintf(line,"*** Costs sequential\n");
   writen(file_descriptor_print_cost, line, strlen(line)) ;
 
   for( i=0 ; i<=card_vec_costs ; i++ ) {
-    sprintf(line,"%ld    %d   %d\n", i, vec_costs[i], my_num) ;
+    sprintf(line,"%ld    %d   s\n", i, vec_costs[i]) ;
     writen(file_descriptor_print_cost, line, strlen(line)) ;
   }
-  sprintf(line,"*** Fin Costs for %d\n", my_num);
+  sprintf(line,"*** End Costs sequential\n");
   writen(file_descriptor_print_cost, line, strlen(line)) ;
 }
-#endif /* PRINT_COSTS */
+#endif /* (defined PRINT_COSTS) && !(defined MPI) */
 
 /*
  * AD_UN_MARK

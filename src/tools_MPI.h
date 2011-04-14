@@ -12,10 +12,6 @@
 #define AS_TOOLS_MPI_H
 #include <stdio.h>       /* printf in DPRINTF macro */
 #include <mpi.h>
-#if defined PRINT_COSTS
-#  include <unistd.h>      /* for read() */
-#  include <errno.h>       /* for errno */
-#endif /* PRINT_COSTS */
 #if defined YC_DEBUG_QUEUE
 #  include <assert.h>
 #endif
@@ -39,6 +35,7 @@
 #endif
 #define PRINT0(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
 
+
 #if (defined YC_DEBUG_PRINT_QUEUE)&&!(defined YC_DEBUG_QUEUE)
 #  define YC_DEBUG_QUEUE
 #endif
@@ -49,6 +46,8 @@
 #else
 #  define SIZE_MESSAGE 2
 #endif
+
+#define QUEUE_NAME_MAX_LENGTH 20
 
 /*-------*
  * Types *
@@ -76,12 +75,6 @@ typedef struct tegami
  * Prototypes *
  *------------*/
 
-/* Read from a file */
-int
-readn(int fd, char * buffer, int n) ;
-/* Write to a file */
-size_t
-writen(int fd, const char * buffer, size_t n) ;
 /* Insert the item at head of list */
 void
 push_tegami_on( tegami * msg, tegami * list) ;

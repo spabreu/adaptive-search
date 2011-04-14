@@ -20,6 +20,7 @@ IF (AS_USE_MPI)
    	${AS_SOURCES}
 	tools_MPI.c
 	ad_solver_MPI.c
+	main_MPI.c
 	)
 ENDIF (AS_USE_MPI)
 

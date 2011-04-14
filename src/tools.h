@@ -13,6 +13,11 @@
 #include <stdio.h>              /* printf() */
 #include "tools_MPI.h"
 
+#if defined PRINT_COSTS
+#  include <unistd.h>      /* for read() */
+#  include <errno.h>       /* for errno */
+#endif /* PRINT_COSTS */
+
 /*----------------------*
  * Constants and macros
  *----------------------*/
@@ -26,11 +31,11 @@
 #elif defined DISPLAY_ALL
 #  define DPRINTF(...) do { printf(__VA_ARGS__) ; } while(0)
 #elif !defined(DPRINTF)
-#  define DPRINTF(...) do { ((void) 0) ; } while(0)
+#  define DPRINTF(...) do { printf(__VA_ARGS__) ; } while(0)
 #endif
 
 #if !defined(PRINT0)
-#define PRINT0(...) DPRINTF(...)
+#define PRINT0(...) DPRINTF(__VA_ARGS__)
 #endif
 
 /*
@@ -52,6 +57,13 @@
 /*------------*
  * Prototypes *
  *------------*/
+
+/* Read from a file */
+int
+readn(int fd, char * buffer, int n) ;
+/* Write to a file */
+size_t
+writen(int fd, const char * buffer, size_t n) ;
 
 long Real_Time(void);
 
