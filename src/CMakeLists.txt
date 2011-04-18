@@ -45,6 +45,7 @@ SET( PROBLEM_LIST
      cap
      alpha
      all-interval
+     costas
 )
 
 FOREACH( loop_var ${PROBLEM_LIST} )
