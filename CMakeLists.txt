@@ -191,6 +191,34 @@ endif (CYGWIN)
 IF ( AS_USE_MPI )
   find_package(MPI)
   IF ( MPI_FOUND )
+    get_filename_component(_MPI_BASE_DIR ${MPI_COMPILER} PATH)
+    find_program(MPI_COMPILER_CXX
+	         NAMES mpic++ mpicxx mpiCC
+ 	         HINTS "${_MPI_BASE_DIR}"
+ 	         PATH_SUFFIXES bin
+ 	         DOC "MPI compiler. Used only to detect MPI compilation flags.")
+
+    find_program(MPI_COMPILER_CC
+	         NAMES mpicc
+ 	         HINTS "${_MPI_BASE_DIR}"
+         	 PATH_SUFFIXES bin
+         	 DOC "MPI compiler. Used only to detect MPI compilation flags.")
+
+#    set(USE_MPI_COMPILER_CONFIG
+#        -DCMAKE_C_COMPILER:PATH=${MPI_COMPILER_CC}
+#        -DCMAKE_CXX_COMPILER:PATH=${MPI_COMPILER_CXX})
+#     endif()
+#     mark_as_advanced(MPI_COMPILER_CC MPI_COMPILER_CXX)
+#     set(titan_mpi_args
+#       -DMPI_LIBRARY:FILEPATH=${MPI_LIBRARY}
+#       -DMPI_INCLUDE_PATH:PATH=${MPI_INCLUDE_PATH})
+#     if(MPI_EXTRA_LIBRARY)
+#       list(APPEND titan_mpi_args
+#         -DMPI_EXTRA_LIBRARY:FILEPATH=${MPI_EXTRA_LIBRARY}
+#         )
+#     endif()
+#   endif()
+
      # change compiler
      SET(CMAKE_C_COMPILER ${MPI_COMPILER_CC})
      SET(CMAKE_CXX_COMPILER ${MPI_COMPILER_CXX})
@@ -216,33 +244,6 @@ IF ( AS_USE_MPI )
 #   IF ( NOT EXISTS ${MPI_COMPILER} )
 #     message(FATAL_ERROR "You must set MPI_COMPILER.")
 #   ENDIF ( NOT EXISTS ${MPI_COMPILER} )
-
-#   get_filename_component(_MPI_BASE_DIR ${MPI_COMPILER} PATH)
-#   find_program(MPI_COMPILER_CXX
-# 	       NAMES mpic++ mpicxx mpiCC
-# 	       HINTS "${_MPI_BASE_DIR}"
-# 	       PATH_SUFFIXES bin
-# 	       DOC "MPI compiler. Used only to detect MPI compilation flags.")
-
-#   find_program(MPI_COMPILER_CC
-# 	       NAMES mpicc
-# 	       HINTS "${_MPI_BASE_DIR}"
-#         PATH_SUFFIXES bin
-#         DOC "MPI compiler. Used only to detect MPI compilation flags.")
-#       set(USE_MPI_COMPILER_CONFIG
-#         -DCMAKE_C_COMPILER:PATH=${MPI_COMPILER_CC}
-#         -DCMAKE_CXX_COMPILER:PATH=${MPI_COMPILER_CXX})
-#     endif()
-#     mark_as_advanced(MPI_COMPILER_CC MPI_COMPILER_CXX)
-#     set(titan_mpi_args
-#       -DMPI_LIBRARY:FILEPATH=${MPI_LIBRARY}
-#       -DMPI_INCLUDE_PATH:PATH=${MPI_INCLUDE_PATH})
-#     if(MPI_EXTRA_LIBRARY)
-#       list(APPEND titan_mpi_args
-#         -DMPI_EXTRA_LIBRARY:FILEPATH=${MPI_EXTRA_LIBRARY}
-#         )
-#     endif()
-#   endif()
 
 ENDIF ( AS_USE_MPI )
 
