@@ -16,30 +16,17 @@
 #  include <assert.h>
 #endif
 
-#if defined DEBUG_MPI_ENDING && !defined DISPLAY_0
-#define DISPLAY_ALL 1
-#endif
-
-
 /*----------------------*
  * Constants and macros
  *----------------------*/
 
-/* For MPI programs, 
-   choose if all proc make output (race on screen/network)
-   or only proc 0
-   or no output (batch, better tp print output in a file
-*/
-#if defined DISPLAY_0
-#  define DPRINTF(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
+#if defined DEBUG_MPI_ENDING && !defined DISPLAY_0
+#define DISPLAY_ALL 1
 #endif
-#define PRINT0(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
-
 
 #if (defined YC_DEBUG_PRINT_QUEUE)&&!(defined YC_DEBUG_QUEUE)
 #  define YC_DEBUG_QUEUE
 #endif
-
 
 #if defined ITER_COST
 #  define SIZE_MESSAGE 3 /* Use 3 for nb iter */
@@ -48,6 +35,37 @@
 #endif
 
 #define QUEUE_NAME_MAX_LENGTH 20
+
+/* Macros to manage outputs of information.
+   DPRINT  -> Debug print: behavior defined at compilation
+   TPRINT  -> Time print.
+   TDPRINT -> Time Debug print.
+
+   For MPI programs, 
+   choose if all proc make output (race on screen/network)
+   or only proc 0
+   or no output (batch, better tp print output in a file
+*/
+#if defined DISPLAY_0
+#  define DPRINT0(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
+#  define PRINTF(...)  do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
+#  define DPRINTF(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
+#  define TPRINTF(...) do { if( my_num == 0 ) { printf("%ld:",Real_Time()) ; printf (__VA_ARGS__) ; } } while(0)
+#endif
+
+#if defined(DEBUG) && !defined(DISPLAY_0)
+#  define DPRINT0(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
+#else
+#  define DPRINT0(...) do { ((void) 0) ;} while(0)
+#endif
+
+#define PRINT0(...)  do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
+#define TPRINT0(...) do { if( my_num == 0 ) { printf("%ld:",Real_Time()) ; printf(__VA_ARGS__); } } while(0)
+
+#if !defined(DISPLAY_0)
+#  define PRINTF(...)  do { printf(__VA_ARGS__); } while(0)
+#  define TPRINTF(...) do { printf("%ld:",Real_Time()) ; printf(__VA_ARGS__); } while(0)
+#endif
 
 /*-------*
  * Types *

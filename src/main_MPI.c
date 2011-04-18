@@ -8,7 +8,6 @@
  */
 
 #include <stdlib.h>                       /* exit() */
-#include <sys/time.h>                     /* struct timeval, gettimeofday() */
 #include <string.h>                       /* strchr() */
 
 #include "main_MPI.h"
@@ -156,21 +155,16 @@ void
 AS_MPI_completion( Main_MPIData * mpi_data_ptr )
 {
   int flag ;
-  struct timeval tv ;
   tegami * tmp_message ;
   char recv_results[RESULTS_CHAR_MSG_SIZE] ;  /* To recv perf, if p0 finishes */
 
   /* From now, time is not crucial anymore... */
   /* Perform a broadcast to kill everyone since I have the solution */
   
-#if (defined DEBUG_MPI) || (defined MPI_ABORT)
   DPRINTF("Proc %d enters finishing state!\n", my_num) ;
-#endif
 #if defined MPI_ABORT
-  printf("%s\n", mpi_data_ptr->results) ;
-  gettimeofday(&tv, NULL) ;
-  DPRINTF("%ld.%ld: %d launches MPI_Abort()!\n",
-	    tv.tv_sec, tv.tv_usec, my_num) ;
+  PRINTF("%s\n", mpi_data_ptr->results) ;
+  TPRINTF(": %d launches MPI_Abort()!\n", my_num) ;
   MPI_Abort(MPI_COMM_WORLD, my_num) ;
   exit(0) ;
 #endif
@@ -182,65 +176,39 @@ AS_MPI_completion( Main_MPIData * mpi_data_ptr )
     /* But proc 0 can also be in that step, so Isend() mandatory! */
     tmp_message = get_tegami_from( &list_allocated_msgs ) ;
     /*    tmp_message->message[1] = my_num ; */
-#if defined DEBUG_MPI_ENDING
-    gettimeofday(&tv, NULL);
-    DPRINTF("%ld.%ld: %d launches MPI_Isend(), LS_KILLALL to 0\n",
-	    tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+    TDPRINTF(": %d launches MPI_Isend(), LS_KILLALL to 0\n", my_num) ;
     MPI_Isend(tmp_message->message, SIZE_MESSAGE, MPI_INT,
 	      0,
 	      LS_KILLALL, MPI_COMM_WORLD,
 	      &(tmp_message->handle)) ;
     push_tegami_on( tmp_message, &list_sent_msgs ) ;
     /* Loop on all received msg. Drop all except LS_KILLALL */
-#if defined DEBUG_MPI_ENDING
-    gettimeofday(&tv, NULL);
-    DPRINTF("%ld.%ld: %d loops on recvd msgs\n",
-	    tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+    TDPRINTF(": %d loops on recvd msgs\n", my_num) ;
     do {
-#ifdef DEBUG_MPI_ENDING
-      gettimeofday(&tv, NULL);
-      DPRINTF("  - %ld.%ld: %d launches MPI_Wait()\n",
-	      tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+      TDPRINTF(": %d launches MPI_Wait()\n", my_num) ;
       MPI_Wait(&(the_message->handle), &(the_message->status)) ;
-#if defined DEBUG_MPI_ENDING
-      gettimeofday(&tv, NULL);
-      DPRINTF("  - %ld.%ld: %d recvd value (%d;%d) protocol %s from %d\n",
-	      tv.tv_sec, tv.tv_usec, my_num,
-	      the_message->message[0],
-	      the_message->message[1],
-	      protocole_name[the_message->status.MPI_TAG],
-	      the_message->status.MPI_SOURCE) ;
-#endif
+      TDPRINTF(": %d recvd value (%d;%d) protocol %s from %d\n", my_num,
+	       the_message->message[0],
+	       the_message->message[1],
+	       protocole_name[the_message->status.MPI_TAG],
+	       the_message->status.MPI_SOURCE) ;
       if( the_message->status.MPI_TAG != LS_KILLALL ) {
 	/* Launch new rcv for input comm */
-#if defined DEBUG_MPI_ENDING
-	gettimeofday(&tv, NULL);
-	DPRINTF("%ld.%ld: %d launches MPI_Irecv(), ANY_TAG, any source\n",
-		tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+	TDPRINTF(": %d launches MPI_Irecv(), ANY_TAG, any source\n", my_num) ;
 	MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
 		  MPI_ANY_SOURCE, 
 		  MPI_ANY_TAG,
 		  MPI_COMM_WORLD, &(the_message->handle)) ;
       } 
     } while( the_message->status.MPI_TAG != LS_KILLALL ) ;
-#if defined DEBUG_MPI_ENDING
     DPRINTF("%d received msg from %d that %d finished.\n\n",
 	    my_num, the_message->status.MPI_SOURCE, the_message->message[1]) ;
-#endif 
     /* Kill sub-range proc */
     send_log_n(the_message->message, LS_KILLALL) ;
     /* Management of results! */
     if( the_message->message[1] == (unsigned)my_num ) { /* I'm the winner */
       /* Send results to 0 */
-#if defined DEBUG_MPI_ENDING
-	gettimeofday(&tv, NULL);
-	DPRINTF("%ld.%ld: %d launches MPI_Isend(), results to 0\n",
-		tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+      TDPRINTF(": %d launches MPI_Isend(), results to 0\n", my_num) ;
       MPI_Send( mpi_data_ptr->results, RESULTS_CHAR_MSG_SIZE, MPI_CHAR,
 		0, SENDING_RESULTS,
 		MPI_COMM_WORLD) ;
@@ -249,79 +217,53 @@ AS_MPI_completion( Main_MPIData * mpi_data_ptr )
 #if defined PRINT_COSTS
     print_costs() ;
 #endif
-#if defined DEBUG_MPI
-    gettimeofday(&tv, NULL);
-    DPRINTF("%ld.%ld: %d calls MPI_Finalize()\n",
-	    tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+    TDPRINTF(": %d calls MPI_Finalize()\n", my_num) ;
     MPI_Finalize() ;
     dead_end_final() ;
     exit(0) ;
   } else { /************************** Proc 0 ! ****************************/
     /* Check if we received a LS_KILLALL before we finished the calculus */
-#if defined DEBUG_MPI_ENDING
     DPRINTF("%d checks if we received LS_KILLALL in last msgs...\n", my_num) ;
-#endif
-
     do {
-#if defined DEBUG_MPI_ENDING
-	gettimeofday(&tv, NULL);
-	DPRINTF("%ld.%ld: %d launches MPI_Test()\n",
-		tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+      TDPRINTF(": %d launches MPI_Test()\n", my_num) ;
       MPI_Test(&(the_message->handle),
 	       &flag,
 	       &(the_message->status)) ;
       if( flag > 0 ) {                /* We received one msg! */
-#if defined DEBUG_MPI_ENDING
-	gettimeofday(&tv, NULL);
-	DPRINTF("%ld:%ld: %d received message %d protocol %s from %d\n",
-		tv.tv_sec, tv.tv_usec,
-		my_num,
-		the_message->message[1],
-		protocole_name[the_message->status.MPI_TAG],
-		the_message->status.MPI_SOURCE) ;
-#endif
+	TDPRINTF(": %d received message %d protocol %s from %d\n", my_num,
+		 the_message->message[1],
+		 protocole_name[the_message->status.MPI_TAG],
+		 the_message->status.MPI_SOURCE) ;
 	if( the_message->status.MPI_TAG == LS_KILLALL ) {
 	  /* The first proc having sent this msg is the winner */
 	  the_message->message[0] = mpi_size ;
 	  the_message->message[1] = the_message->status.MPI_SOURCE ;
 	  send_log_n( the_message->message, LS_KILLALL ) ;
 	  /* Now, recv result from the first having sent its results: winner */
-#if defined DEBUG_MPI_ENDING
-	  gettimeofday(&tv, NULL);
-	  DPRINTF("%ld.%ld: %d launches MPI_Irecv() of results for"
-		  " source %d\n",
-		  tv.tv_sec, tv.tv_usec, my_num,
-		  the_message->status.MPI_SOURCE) ;
-#endif
+	  TDPRINTF(": %d launches MPI_Irecv() of results for source %d\n",
+		   my_num,
+		   the_message->status.MPI_SOURCE) ;
 	  MPI_Recv( recv_results, RESULTS_CHAR_MSG_SIZE, MPI_CHAR,
 		    the_message->status.MPI_SOURCE, SENDING_RESULTS,
 		    MPI_COMM_WORLD,
 		    MPI_STATUS_IGNORE) ;
 	  /**** Compare its result to our! */
-#if defined DEBUG_MPI_ENDING
 	  DPRINTF("Recvd : %s\n", recv_results) ;
 	  DPRINTF("  -> %s\n",
 		  strchr(strchr(recv_results+1,'|')+1, '|')+1) ;
 	  DPRINTF("Computed : %s\n", mpi_data_ptr->results) ;
 	  DPRINTF("  ->%s\n",
 		  strchr(strchr(mpi_data_ptr->results+1,'|')+1, '|')+1) ;
-#endif
 	  /* Search for 3rd | in string */
 	  if( atof(strchr(strchr(&recv_results[1],'|')+1, '|')+1)
 	      > atof(strchr(strchr(&(mpi_data_ptr->results[1]),'|')+1, '|')+1) )
-	    printf("%s\n\n", mpi_data_ptr->results ) ;
+	    PRINTF("%s\n\n", mpi_data_ptr->results ) ;
 	  else
-	    printf("%s\n\n", recv_results ) ;
+	    PRINTF("%s\n\n", recv_results ) ;
 #if defined PRINT_COSTS
 	  print_costs() ;
 #endif
-#if defined DEBUG_MPI
-	  gettimeofday(&tv, NULL);
-	  DPRINTF("%ld.%ld: %d calls MPI_Finalize()\n",
-		  tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+	  TPRINTF(": 0 calls MPI_Finalize()\n") ;
 	  MPI_Finalize() ;
 	  /* Do we have to recv the other sent msgs to make a good terminating
 	     process? */
@@ -336,32 +278,21 @@ AS_MPI_completion( Main_MPIData * mpi_data_ptr )
       }
     } while( flag > 0 ) ; /* exit if no msg rcvd */
     /* From here, proc 0 winner */
-    printf("%s\n\n", mpi_data_ptr->results) ;
+    PRINTF("%s\n\n", mpi_data_ptr->results) ;
 #if defined PRINT_COSTS
     print_costs() ;
 #endif
     /* Cancel Irecv */
-#if defined DEBUG_MPI_ENDING
-    gettimeofday(&tv, NULL);
-    DPRINTF("%ld.%ld: %d launches MPI_Cancel()\n",
-	    tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+    TDPRINTF(": %d launches MPI_Cancel()\n", my_num) ;
     MPI_Cancel( &(the_message->handle) ) ;
     MPI_Wait( &(the_message->handle), MPI_STATUS_IGNORE ) ;
-#if defined DEBUG_MPI_ENDING
-    gettimeofday(&tv, NULL);
-    DPRINTF("%ld.%ld: %d finished Waiting of canceled msg\n",
-	    tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+    TDPRINTF(": %d finished Waiting of canceled msg\n", my_num) ;
+
     /* Reuse buffer and send LSKILLALL to everyone */
     the_message->message[1] = 0 ;
     the_message->message[0] = mpi_size ;
     send_log_n( the_message->message, LS_KILLALL ) ;
-#if defined DEBUG_MPI
-    gettimeofday(&tv, NULL);
-    DPRINTF("%ld.%ld: %d calls MPI_Finalize()\n",
-	    tv.tv_sec, tv.tv_usec, my_num) ;
-#endif
+    TDPRINTF(": 0 calls MPI_Finalize()\n", my_num) ;
     MPI_Finalize() ;
     dead_end_final() ;
     exit(0) ;

@@ -75,159 +75,147 @@ Ad_Solve_init_MPI_data( Ad_Solve_MPIData * mpi_data )
 #endif
 }
 
+/* Try to free old messages in their sending order */
 int
-Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
+Ad_Solver_free_messages( Ad_Solve_MPIData * mpi_data_ptr )
+{
+  int flag = 1 ;       /* .. if operation completed */
+
+  TDPRINTF("--------------- %d,%d: Free older messages\n", 
+	  my_num,
+	  mpi_data_ptr->nb_block) ;
+  while( (list_sent_msgs.next != NULL) && (flag!=0) ) {
+    TDPRINTF(" Proc %d launches MPI_TEST()\n", my_num) ;
+    MPI_Test( &((list_sent_msgs.previous)->handle), &flag,
+	      MPI_STATUS_IGNORE ) ;
+    if( flag != 0 )
+      push_tegami_on( unqueue_tegami_from(&list_sent_msgs),
+		      &list_allocated_msgs) ;
+  } /* while( (list_sent_msgs.next != NULL) && (flag!=0) ) { */
+}
+
+/* Reception of all messages */
+int
+Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data,
+			 AdData * p_ad )
+{
+  int flag = 0 ;       /* .. if operation completed */
+  char results[RESULTS_CHAR_MSG_SIZE] ;
+  int number_received_msgs ;
+
+  DPRINTF("-------------- %d: Reception\n", my_num) ;
+  /************** Check how many msg were received ***************/
+  number_received_msgs = 0 ;
+#if (defined COMM_COST) || (defined ITER_COST)
+  mixed_received_msg_cost = INT_MAX ;
+#endif
+  do {
+    TDPRINTF(": Proc %d launches MPI_TEST()\n", my_num) ;
+    MPI_Test(&(the_message->handle), &flag, &(the_message->status)) ;
+    if( flag > 0 ) {                     /* We received at least one! */
+      TDPRINTF(": %d received protocol %s from %d\n",
+	      my_num,
+	      protocole_name[the_message->status.MPI_TAG],
+	      the_message->status.MPI_SOURCE) ;
+      /* Initiate treatment of all msg */
+      number_received_msgs++ ;
+      switch( the_message->status.MPI_TAG ) {
+	/******************************* LS_KILLALL *********************/
+      case LS_KILLALL:
+	/* Then quits! */
+#if defined YC_DEBUG
+	DPRINTF("LS_KILLALL from %d\n",
+		the_message->status.MPI_SOURCE) ;
+#endif /* YC_DEBUG */
+	if( my_num == 0 ) {
+	  /* Reuse msg to send LSKILLALL to everyone */
+	  the_message->message[0] = mpi_size ;
+	  the_message->message[1] = the_message->status.MPI_SOURCE ;
+	  send_log_n( the_message->message, LS_KILLALL ) ;
+	  /* Recv results from source */
+	  TDPRINTF(": %d launches MPI_Irecv() of results for source %d\n",
+		  my_num, the_message->status.MPI_SOURCE) ;
+	  MPI_Recv( results, RESULTS_CHAR_MSG_SIZE, MPI_CHAR,
+		    the_message->status.MPI_SOURCE, SENDING_RESULTS,
+		    MPI_COMM_WORLD,
+		    MPI_STATUS_IGNORE) ;
+	  PRINTF("%s\n", results) ;
+#if defined PRINT_COSTS
+	  print_costs() ;
+#endif
+	  TPRINTF(": 0 calls MPI_Finalize()\n") ;
+	  MPI_Finalize() ;
+	  dead_end_final() ;
+	  exit(0) ;
+	} else {                                  /* Proc N */
+	  /* S.o finished before me. I killall the ones I'm responsible */
+	  send_log_n( the_message->message, LS_KILLALL ) ;
+#if defined PRINT_COSTS
+	  print_costs() ;
+#endif
+	  TPRINTF(": %d calls MPI_Finalize()\n", my_num) ;
+	  MPI_Finalize() ;
+	  dead_end_final() ;
+	  exit(0) ;
+	}
+	break ;
+#if (defined COMM_COST) || (defined ITER_COST)
+	/******************************* LS_COST *********************/
+      case LS_COST:     /* take the min! */
+#  if defined YC_DEBUG
+	DPRINTF("%d takes the min between min'_recv(%d) and recvd(%d)\n",
+		my_num,
+		mixed_received_msg_cost, the_message->message[1]) ;
+#  endif
+	if( mixed_received_msg_cost > the_message->message[1] ) {
+	  mixed_received_msg_cost = the_message->message[1] ;
+#  if defined ITER_COST
+	  /* Save according iter */
+	  mixed_received_msg_iter = the_message->message[2] ;
+#  endif
+	}
+	/* Store recvd msg to treat it later */
+	push_tegami_on( the_message, &list_recv_msgs) ;
+	/* Launch new async recv */
+	the_message = get_tegami_from( &list_allocated_msgs) ;
+#  if defined YC_DEBUG_MPI
+	TDPRINTF(": %d launches MPI_Irecv(), any source\n", my_num) ;
+#  endif
+	MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
+		  MPI_ANY_SOURCE, 
+		  MPI_ANY_TAG,
+		  MPI_COMM_WORLD, &(the_message->handle)) ;
+	break ;
+#endif /* COMM_COST || ITER_COST */
+      case SENDING_RESULTS:
+      default:
+	printf("Should never happen! Exiting.\n") ;
+	exit(-1) ;
+      } /*  switch( the_message->status.MPI_TAG ) { */
+    } /* if flag */
+  } while( flag > 0 ) ;
+  
+  return(  number_received_msgs ) ;
+}
+
+int
+Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 				    AdData * p_ad )
 {
-  unsigned int i ;
-  /* .. if operation completed */
-  int flag = 0 ;
-  char results[RESULTS_CHAR_MSG_SIZE] ;
+  int i ;
   /* # of received msgs in a block of iteration */
-  unsigned int number_received_msgs ;
+  int number_received_msgs ;
   tegami * tmp_tegami ;
 #if (defined COMM_COST) || (defined ITER_COST)
   unsigned int ran_tmp ;
 #endif /* COMM_COST || ITER_COST */
-#if (defined(YC_DEBUG))||(defined(YC_DEBUG_MPI))||(defined(YC_DEBUG_RESTART))
-  struct timeval tv ;
-#endif
+  int flag = 0 ;       /* .. if operation completed */
 
   if( (p_ad->nb_iter % count_to_communication)==0 ) {
-    mpi_data->nb_block++ ;
-    /* Try to free older messages in their sending order */
-#if defined YC_DEBUG
-    gettimeofday(&tv, NULL);
-    DPRINTF("%ld:%ld --------------- %d,%d: Free older messages\n", 
-	    tv.tv_sec, tv.tv_usec,
-	    my_num,
-	    mpi_data->nb_block) ;
-#endif /* YC_DEBUG */
-    flag = 1 ;
-    while( (list_sent_msgs.next != NULL) && (flag!=0) ) {
-#if defined YC_DEBUG_MPI
-      gettimeofday(&tv, NULL);
-      DPRINTF("%ld:%ld: Proc %d launches MPI_TEST()\n",
-	      tv.tv_sec, tv.tv_usec,
-	      my_num) ;
-#endif /* YC_DEBUG_MPI */
-      MPI_Test( &((list_sent_msgs.previous)->handle), &flag,
-		MPI_STATUS_IGNORE ) ;
-      if( flag != 0 ) {
-	push_tegami_on( unqueue_tegami_from(&list_sent_msgs),
-			&list_allocated_msgs) ;
-      } /* if( flag != 0 ) { */
-    } /* while( (list_sent_msgs.next != NULL) && (flag!=0) ) { */
-#if defined YC_DEBUG
-    DPRINTF("-------------- %d: Reception\n", my_num) ;
-#endif	
-    /*-------------------------------------------------------------*/
-    /*************************** Reception *************************/
-    /*-------------------------------------------------------------*/
-    /************** Check how many msg were received ***************/
-    number_received_msgs = 0 ;
-#if (defined COMM_COST) || (defined ITER_COST)
-    mixed_received_msg_cost = INT_MAX ;
-#endif
-    do {
-#if defined YC_DEBUG_MPI
-      gettimeofday(&tv, NULL);
-      DPRINTF("%ld:%ld: Proc %d launches MPI_TEST()\n",
-	      tv.tv_sec, tv.tv_usec,
-	      my_num) ;
-#endif
-      MPI_Test(&(the_message->handle), &flag, &(the_message->status)) ;
-      if( flag > 0 ) {                     /* We received at least one! */
-#if defined YC_DEBUG_MPI
-	gettimeofday(&tv, NULL);
-	DPRINTF("%ld:%ld: %d received protocol %s from %d\n",
-		tv.tv_sec, tv.tv_usec,
-		my_num,
-		protocole_name[the_message->status.MPI_TAG],
-		the_message->status.MPI_SOURCE) ;
-#endif
-	/* Initiate treatment of all msg */
-	number_received_msgs++ ;
-	switch( the_message->status.MPI_TAG ) {
-	  /******************************* LS_KILLALL *********************/
-	case LS_KILLALL:
-	  /* Then quits! */
-#if defined YC_DEBUG
-	  DPRINTF("LS_KILLALL from %d\n",
-		  the_message->status.MPI_SOURCE) ;
-#endif /* YC_DEBUG */
-	  if( my_num == 0 ) {
-	    /* Reuse msg and kill everyone */
-	    the_message->message[0] = mpi_size ;
-	    the_message->message[1] = the_message->status.MPI_SOURCE ;
-	    send_log_n( the_message->message, LS_KILLALL ) ;
-	    /* Recv results from source */
-#if defined YC_DEBUG_MPI
-	    gettimeofday(&tv, NULL);
-	    DPRINTF("%ld.%ld: %d launches MPI_Irecv() of results for"
-		    " source %d\n",
-		    tv.tv_sec, tv.tv_usec, my_num,
-		    the_message->status.MPI_SOURCE) ;
-#endif
-	    MPI_Recv( results, RESULTS_CHAR_MSG_SIZE, MPI_CHAR,
-		      the_message->status.MPI_SOURCE, SENDING_RESULTS,
-		      MPI_COMM_WORLD,
-		      MPI_STATUS_IGNORE) ;
-	    printf("%s\n", results) ;
-#if defined PRINT_COSTS
-	    print_costs() ;
-#endif
-	    MPI_Finalize() ;
-	    dead_end_final() ;
-	    exit(0) ;
-	  } else {                                  /* Proc N */
-	    /* S.o finished before me. I killall the ones I'm responsible */
-	    send_log_n( the_message->message, LS_KILLALL ) ;
-#if defined PRINT_COSTS
-	    print_costs() ;
-#endif
-	    MPI_Finalize() ;
-	    dead_end_final() ;
-	    exit(0) ;
-	  }
-	  break ;
-#if (defined COMM_COST) || (defined ITER_COST)
-	  /******************************* LS_COST *********************/
-	case LS_COST:     /* take the min! */
-#  if defined YC_DEBUG
-	  DPRINTF("%d takes the min between min'_recv(%d) and recvd(%d)\n",
-		  my_num,
-		  mixed_received_msg_cost, the_message->message[1]) ;
-#  endif
-	  if( mixed_received_msg_cost > the_message->message[1] ) {
-	    mixed_received_msg_cost = the_message->message[1] ;
-#  if defined ITER_COST
-	    /* Save according iter */
-	    mixed_received_msg_iter = the_message->message[2] ;
-#  endif
-	  }
-	  /* Store recvd msg to treat it later */
-	  push_tegami_on( the_message, &list_recv_msgs) ;
-	  /* Launch new async recv */
-	  the_message = get_tegami_from( &list_allocated_msgs) ;
-#  if defined YC_DEBUG_MPI
-	  gettimeofday(&tv, NULL);
-	  DPRINTF("%ld.%ld: %d launches MPI_Irecv(), any source\n",
-		  tv.tv_sec, tv.tv_usec, my_num) ;
-#  endif
-	      MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
-			MPI_ANY_SOURCE, 
-			MPI_ANY_TAG,
-			MPI_COMM_WORLD, &(the_message->handle)) ;
-	      break ;
-#endif /* COMM_COST || ITER_COST */
-	case SENDING_RESULTS:
-	default:
-	  printf("Should never happen! Exiting.\n") ;
-	  exit(-1) ;
-	} /*  switch( the_message->status.MPI_TAG ) { */
-      } /* if flag */
-    } while( flag > 0 ) ;
+    mpi_data_ptr->nb_block++ ;
+    Ad_Solver_free_messages( mpi_data_ptr ) ;
+    number_received_msgs = Ad_Solver_recv_messages( mpi_data_ptr, p_ad ) ;
+    
 #if defined YC_DEBUG
     DPRINTF("%d received %d messages in total this time\n",
 	    my_num,
@@ -241,19 +229,17 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
 #if (defined COMM_COST) || (defined ITER_COST)
 	/******************************* LS_COST *********************/
       case LS_COST:
-#  if defined YC_DEBUG_MPI
-	gettimeofday(&tv, NULL);
-	DPRINTF("%ld:%ld: %d treats LS_COST of %d from %d\n",
-		tv.tv_sec, tv.tv_usec,
-		my_num,
-		tmp_tegami->message[1],
-		tmp_tegami->status.MPI_SOURCE) ;
-#  endif /* YC_DEBUG_MPI */
+#if defined YC_DEBUG_MPI
+	TDPRINTF(": %d treats LS_COST of %d from %d\n",
+		 my_num,
+		 tmp_tegami->message[1],
+		 tmp_tegami->status.MPI_SOURCE) ;
+#endif /* YC_DEBUG_MPI */
 	/* Crash cost with our value and avoids a test */
 	tmp_tegami->message[1] = mixed_received_msg_cost ;
-#  if defined ITER_COST
+#if defined ITER_COST
 	tmp_tegami->message[2] = mixed_received_msg_iter ;
-#  endif
+#endif
 	/* [cont. to] Distribute the information */
 	send_log_n( tmp_tegami->message, LS_COST ) ;
 	/* Msg received and treated */
@@ -261,7 +247,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
 	break;
 #endif /* COMM_COST || ITER_COST */
       default:
-	printf("This should never happen! Exiting...\n") ;
+	PRINTF("This should never happen! Exiting...\n") ;
 	exit(-1) ;
       } /* switch( the_message->status.MPI_TAG ) { */
     } /* for( i=0 ; i<number_received_msgs ; i++ ) { */
@@ -274,68 +260,62 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
       /** Do we take into account the received cost? **/
       if( mixed_received_msg_cost < best_cost_received ) {
 	best_cost_received = mixed_received_msg_cost ;
-#  if defined ITER_COST
+#if defined ITER_COST
 	iter_for_best_cost_received = mixed_received_msg_iter ;
-#  endif
+#endif
       }
-#  if defined YC_DEBUG
+#if defined YC_DEBUG
       DPRINTF("%d: Best recv cost is now %d\n",
 	      my_num, best_cost_received) ;
-#    if defined ITER_COST
+#if defined ITER_COST
       DPRINTF("... with #iter %d\n", iter_for_best_cost_received ) ;
-#    endif
-#  endif
+#endif
+#endif
       /******************************* COMM_COST ****************/
-#  if defined COMM_COST
+#if defined COMM_COST
       if( (unsigned)p_ad->total_cost > mixed_received_msg_cost ) {
 	ran_tmp=(((float)random())/RAND_MAX)*100 ;
-#    if defined YC_DEBUG	  
+#if defined YC_DEBUG	  
 	DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		my_num,
 		p_ad->total_cost,
 		mixed_received_msg_cost,
 		ran_tmp,
 		proba_communication) ;
-#    endif
+#endif
 	
 	if( ran_tmp < proba_communication ) {
-#    if defined YC_DEBUG_RESTART
-	  gettimeofday(&tv, NULL);
-	  DPRINTF("%ld:%ld: Proc %d restarts!\n",
-		  tv.tv_sec, tv.tv_usec,
-		  my_num) ;
-#    endif
+#if defined YC_DEBUG_RESTART
+	  TDPRINTF(": Proc %d restarts!\n", my_num) ;
+#endif
 	  return 10 ;
 	} /* if( tan_tmp */  
       } /* if( p_ad->total.cost */
-#  endif /* COMM_COST */
+#endif /* COMM_COST */
       /******************************* ITER_COST ****************/
-#  if defined ITER_COST
+#if defined ITER_COST
       /* Best cost AND smaller #iter */
       if( (unsigned)p_ad->total_cost > mixed_received_msg_cost ) {
 	if( mixed_received_msg_iter < p_ad->nb_iter ) {
 	  
 	  ran_tmp=(((float)random())/RAND_MAX)*100 ;
-#    if defined YC_DEBUG	  
+#if defined YC_DEBUG	  
 	  DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		  my_num,
 		  p_ad->total_cost,
 		  mixed_received_msg_cost,
 		  ran_tmp,
 		  proba_communication) ;
-#    endif
+#endif
 	  if( ran_tmp < proba_communication ) {
-#    if defined YC_DEBUG_RESTART
-	    gettimeofday(&tv, NULL);
-	    DPRINTF("%ld:%ld: Proc %d restarts!\n",
-		    tv.tv_sec, tv.tv_usec,
-		    my_num) ;
-#    endif
+#if defined YC_DEBUG_RESTART
+	    TDPRINTF(": Proc %d restarts!\n", my_num) ;
+#endif
 	    return 10 ;
 	  } /* if( tan_tmp */  
 	}/* if( mixed_recv */
       } /* if( p_ad->total.cost */
-#  endif /* ITER_COST */
+#endif /* ITER_COST */
     } /* if( number_received_msgs > 0 ) { */
 #endif /* COMM_COST || ITER_COST */
 #if defined YC_DEBUG
@@ -347,26 +327,24 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
 #if (defined COMM_COST) || (defined ITER_COST)
     /************** Sends best cost? ************/
     if( (unsigned)best_cost < best_cost_sent ) {
-#  if defined YC_DEBUG
+#if defined YC_DEBUG
       DPRINTF("Proc %d sends cost %d\n", my_num, best_cost) ;
-#  endif /* YC_DEBUG */
+#endif /* YC_DEBUG */
       s_cost_message[0] = mpi_size ;
       s_cost_message[1] = best_cost ;
-#  if defined ITER_COST
+#if defined ITER_COST
       s_cost_message[1] = p_ad->nb_iter ;
-#  endif
+#endif
       send_log_n(s_cost_message, LS_COST) ;	      
       best_cost_sent = best_cost ;
-#  if defined ITER_COST
+#if defined ITER_COST
       iter_of_best_cost_sent = p_ad->nb_iter ;
-#  endif
+#endif
     } /* if( best_cost < best_cost_sent ) { */
 #endif /* COMM_COST || ITER_COST */
   } /* if( (p_ad->nb_iter % count_to_communication)==0 ) { */
   return 0 ;
 }
-
-
 
 void
 dead_end_final()

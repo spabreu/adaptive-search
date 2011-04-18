@@ -16,18 +16,11 @@
 #include <limits.h> /* INT_MAX */
 #include <assert.h> /* For assert(). gcc -D NDEBUG to get ride of tests */
 #if defined YC_DEBUG
-#if !defined( YC_DEBUG_MPI )
-#define YC_DEBUG_MPI
-#endif
+#  if !defined( YC_DEBUG_MPI )
+#    define YC_DEBUG_MPI
+#  endif
 #  define YC_DEBUG_RESTART
-#  include <sys/time.h> /* gettimeofday() */
 #endif /* YC_DEBUG */
-#if defined YC_DEBUG_MPI
-#  include <sys/time.h> /* gettimeofday() */
-#endif
-#if defined YC_DEBUG_RESTART
-#  include <sys/time.h> /* gettimeofday() */
-#endif
 
 /*----------------------*
  * Constants and macros

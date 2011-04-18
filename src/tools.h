@@ -14,8 +14,8 @@
 #include "tools_MPI.h"
 
 #if defined PRINT_COSTS
-#  include <unistd.h>      /* for read() */
-#  include <errno.h>       /* for errno */
+#  include <unistd.h>           /* for read() */
+#  include <errno.h>            /* for errno */
 #endif /* PRINT_COSTS */
 
 /*----------------------*
@@ -23,19 +23,41 @@
  *----------------------*/
 
 /* Macros to manage outputs of information.
+   DPRINT -> Debug print: behavior defined at compilation
+   TPRINT -> Time print.
 */
-#ifdef NO_SCREEN_OUTPUT
-#  define DPRINTF(...) do { ((void) 0) ;} while(0)
-#elif defined(DEBUG) && (DEBUG & 4)
-#  define DPRINTF(...) do { printf (__VA_ARGS__) ; } while(0)
-#elif defined DISPLAY_ALL
-#  define DPRINTF(...) do { printf(__VA_ARGS__) ; } while(0)
-#elif !defined(DPRINTF)
-#  define DPRINTF(...) do { printf(__VA_ARGS__) ; } while(0)
-#endif
+#if !defined(DPRINTF)
+#  ifdef NO_SCREEN_OUTPUT
+#    define DPRINTF(...) do { ((void) 0) ;} while(0)
+#  elif defined(DEBUG) && (DEBUG & 4)
+#    define DPRINTF(...) do { printf (__VA_ARGS__) ; } while(0)
+#  elif defined DISPLAY_ALL
+#    define DPRINTF(...) do { printf(__VA_ARGS__) ; } while(0)
+#  elif !defined(DPRINTF)
+#    define DPRINTF(...) do { ((void) 0) ;} while(0)
+#  endif
+#endif /* !defined(DPRINTF) */
 
 #if !defined(PRINT0)
-#define PRINT0(...) DPRINTF(__VA_ARGS__)
+#  define PRINT0(...) do { printf(__VA_ARGS__); } while(0)
+#endif
+#if !defined(DPRINT0)
+#  define DPRINT0(...) DPRINTF(__VA_ARGS__)
+#endif
+#if !defined(TPRINT0)
+#  define TPRINT0(...) do { printf("%ld:",Real_Time()) ; printf(__VA_ARGS__); } while(0)
+#endif
+
+#if !defined(PRINTF)
+#  define PRINTF(...)  do { printf(__VA_ARGS__); } while(0)
+#endif
+
+#if !defined(TPRINTF)
+#  define TPRINTF(...) do { printf("%ld:",Real_Time()) ; printf (__VA_ARGS__) ; } while(0)
+#endif
+
+#if !defined(TDPRINTF)
+#  define TDPRINTF(...) do { DPRINTF("%ld:",Real_Time()) ; DPRINTF(__VA_ARGS__) ; } while(0)
 #endif
 
 /*

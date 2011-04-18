@@ -23,6 +23,7 @@
 #include "ad_solver.h"
 #include "ad_solver_MPI.h"
 #include "main_MPI.h"
+#include "tools.h"                         /* PRINT, DPRINT, TPRINT, TDPRINT */
 
 /*-----------*
  * Constants *
@@ -153,13 +154,13 @@ main(int argc, char *argv[])
   MPI_Init( &argc , &argv ) ;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_num) ;
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size) ;
-  PRINT0("Program: %s", argv[0]) ;
+  TPRINT0("Program: %s", argv[0]) ;
   for( i=1 ; i< argc ; ++i )
     PRINT0(" %s", argv[i]) ;
   PRINT0("\n") ;
   AS_MPI_initialization( &mpi_data ) ;
 #else /****************************** MPI -> SEQ *****************************/
-  PRINT0("Program: %s", argv[0]) ;
+  TPRINT0("Program: %s", argv[0]) ;
   for( i=1 ; i< argc ; i++ )
     PRINT0(" %s", argv[i]) ;
   PRINT0("\n") ;
@@ -201,7 +202,7 @@ main(int argc, char *argv[])
 				    O_WRONLY | O_EXCL | O_CREAT,
 				    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) ;
   if( file_descriptor_print_cost == -1 ) {
-    DPRINTF("Cannot create file to print costs: file already exists?\n") ;
+    PRINTF("Cannot create file to print costs: file already exists?\n") ;
     return -1 ;
   }
 #endif /* PRINT_COSTS */
@@ -225,10 +226,10 @@ main(int argc, char *argv[])
   //setlinebuf(stdout);
 
   if (p_ad->debug > 0 && !ad_has_debug)
-    DPRINTF("Warning ad_solver is not compiled with debugging support\n") ;
+    DPRINT0("Warning ad_solver is not compiled with debugging support\n") ;
 
   if (p_ad->log_file && !ad_has_log_file)
-    DPRINTF("Warning ad_solver is not compiled with log file support\n") ;
+    DPRINT0("Warning ad_solver is not compiled with log file support\n") ;
 
   p_ad->size_in_bytes = p_ad->size * sizeof(int);
   p_ad->sol = malloc(p_ad->size_in_bytes);
@@ -272,13 +273,9 @@ main(int argc, char *argv[])
   PRINT0("MPI Barrier called to synchronize processus before solve()\n");
   MPI_Barrier(MPI_COMM_WORLD);
 #endif /* MPI_BEGIN_BARRIER */
-#if defined DEBUG_MPI
-  gettimeofday(&tv, NULL);
-  DPRINTF("%d begins its resolution at %ld:%ld\n", my_num, (long int)tv.tv_sec,
-	  (long int)tv.tv_usec) ;
-#endif /* DEBUG_MPI */
 #endif /* MPI */
 
+  TPRINT0("%d begins its resolution!\n", my_num) ;
 
   if (count <= 0) /* Note: MPI => count=1 */
     {
@@ -297,33 +294,31 @@ main(int argc, char *argv[])
       Verify_Sol(p_ad);
 
       if (p_ad->total_cost)
-	DPRINTF("*** NOT SOLVED (cost of this pseudo-solution: %d) ***\n", p_ad->total_cost) ;
+	PRINTF("*** NOT SOLVED (cost of this pseudo-solution: %d) ***\n", p_ad->total_cost) ;
 
       if (count == 0)
 	{
 	  nb_same_var_by_iter = (double) p_ad->nb_same_var / p_ad->nb_iter;
 	  nb_same_var_by_iter_tot = (double) p_ad->nb_same_var_tot / p_ad->nb_iter_tot;
 
-	  printf("%5d %8.2f %8d %8d %8d %8d %8.1f %8d %8d %8d %8d %8.1f", 
+	  PRINTF("%5d %8.2f %8d %8d %8d %8d %8.1f %8d %8d %8d %8d %8.1f", 
 		 p_ad->nb_restart, time_one, 
 		 p_ad->nb_iter, p_ad->nb_local_min, p_ad->nb_swap, 
 		 p_ad->nb_reset, nb_same_var_by_iter,
 		 p_ad->nb_iter_tot, p_ad->nb_local_min_tot, p_ad->nb_swap_tot, 
 		 p_ad->nb_reset_tot, nb_same_var_by_iter_tot);
 	  if (user_stat_fct)
-	    printf(" %8d", (*user_stat_fct)(p_ad));
-	  printf("\n");
+	    PRINTF(" %8d", (*user_stat_fct)(p_ad));
+	  PRINTF("\n");
 	}
       else
 	{
-	  printf("in %.2f secs (%d restarts, %d iters, %d loc min, %d swaps, %d resets)\n", 
+	  PRINTF("in %.2f secs (%d restarts, %d iters, %d loc min, %d swaps, %d resets)\n", 
 		 time_one, p_ad->nb_restart, p_ad->nb_iter_tot, p_ad->nb_local_min_tot, 
 		 p_ad->nb_swap_tot, p_ad->nb_reset_tot);
 	}
       return 0 ;
     } /* (count <= 0) */
-
-  PRINT0("\n") ;
 
   if (user_stat_name)
     sprintf(str, " %8s |", user_stat_name);
@@ -377,9 +372,8 @@ main(int argc, char *argv[])
 
 #if !defined MPI /* Slashes MPI output! */
       if (disp_mode == 2 && nb_restart_cum > 0)
-	printf
-("\033[A\033[K");
-      printf("\033[A\033[K\033[A\033[256D");
+	PRINTF("\033[A\033[K");
+      PRINTF("\033[A\033[K\033[A\033[256D");
 #endif
 
       Verify_Sol(p_ad);
@@ -445,71 +439,71 @@ main(int argc, char *argv[])
 	{
 	case 0:			/* only last iter counters */
 	case 2:			/* last iter followed by restart if needed */
-	  printf("|%4d | %5d%c| %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("|%4d | %5d%c| %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 i, p_ad->nb_restart, (p_ad->total_cost == 0) ? ' ' : 'N',
 		 time_one,
 		 p_ad->nb_iter, p_ad->nb_local_min, p_ad->nb_swap,
 		 p_ad->nb_reset, nb_same_var_by_iter);
 	  if (user_stat_fct)
-	    printf(" %8d |", user_stat);
-	  printf("\n");
+	    PRINTF(" %8d |", user_stat);
+	  PRINTF("\n");
 
 	  if (disp_mode == 2 && p_ad->nb_restart > 0) 
 	    {
-	      printf("|     |       |          |"
+	      PRINTF("|     |       |          |"
 		     " %8d | %8d | %8d | %8d | %8.1f |",
 		     p_ad->nb_iter_tot, p_ad->nb_local_min_tot,
 		     p_ad->nb_swap_tot,
 		     p_ad->nb_reset_tot, nb_same_var_by_iter_tot);
 	      if (user_stat_fct)
-		printf("          |");
-	      printf("\n");
+		PRINTF("          |");
+	      PRINTF("\n");
 	    }
 
-	  printf("%s", buff);
+	  PRINTF("%s", buff);
 
-	  printf("| avg | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("| avg | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 nb_restart_cum / i, time_cum / i,
 		 nb_iter_cum / i, nb_local_min_cum / i, nb_swap_cum / i,
 		 nb_reset_cum / i, nb_same_var_by_iter_cum / i);
 	  if (user_stat_fct)
-	    printf(" %8.2f |", (double) user_stat_cum / i);
-	  printf("\n");
+	    PRINTF(" %8.2f |", (double) user_stat_cum / i);
+	  PRINTF("\n");
 
 
 	  if (disp_mode == 2 && nb_restart_cum > 0) 
 	    {
-	      printf("|     |       |          |"
+	      PRINTF("|     |       |          |"
 		     " %8d | %8d | %8d | %8d | %8.1f |",
 		     nb_iter_tot_cum / i, nb_local_min_tot_cum / i,
 		     nb_swap_tot_cum / i,
 		     nb_reset_tot_cum / i, nb_same_var_by_iter_tot_cum / i);
 	      if (user_stat_fct)
-		printf("          |");
-	      printf("\n");
+		PRINTF("          |");
+	      PRINTF("\n");
 	    }
 	  break;
 
 	case 1:			/* only total (restart + last iter) counters */
-	  printf("|%4d | %5d%c| %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("|%4d | %5d%c| %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 i, p_ad->nb_restart, (p_ad->total_cost == 0) ? ' ' : 'N',
 		 time_one,
 		 p_ad->nb_iter_tot, p_ad->nb_local_min_tot, p_ad->nb_swap_tot,
 		 p_ad->nb_reset_tot, nb_same_var_by_iter_tot);
 	  if (user_stat_fct)
-	    printf(" %8d |", user_stat);
-	  printf("\n");
+	    PRINTF(" %8d |", user_stat);
+	  PRINTF("\n");
 
-	  printf("%s", buff);
+	  PRINTF("%s", buff);
 
-	  printf("| avg | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("| avg | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 nb_restart_cum / i, time_cum / i,
 		 nb_iter_tot_cum / i, nb_local_min_tot_cum / i,
 		 nb_swap_tot_cum / i,
 		 nb_reset_tot_cum / i, nb_same_var_by_iter_tot_cum / i);
 	  if (user_stat_fct)
-	    printf(" %8.2f |", (double) user_stat_cum / i);
-	  printf("\n");
+	    PRINTF(" %8.2f |", (double) user_stat_cum / i);
+	  PRINTF("\n");
 	  break;
 	}
 #else /* MPI */
@@ -532,21 +526,21 @@ main(int argc, char *argv[])
     return 0;
 
   if( count > 1 ) { /* YC->DD: why this test has been removed? */
-    printf("| min | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
+    PRINTF("| min | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 	   nb_restart_min, time_min,
 	   nb_iter_tot_min, nb_local_min_tot_min, nb_swap_tot_min,
 	   nb_reset_tot_min, nb_same_var_by_iter_tot_min);
     if (user_stat_fct)
-      printf(" %8d |", user_stat_min);
-    printf("\n");
+      PRINTF(" %8d |", user_stat_min);
+    PRINTF("\n");
 
-    printf("| max | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
+    PRINTF("| max | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 	   nb_restart_max, time_max,
 	   nb_iter_tot_max, nb_local_min_tot_max, nb_swap_tot_max,
 	   nb_reset_tot_max, nb_same_var_by_iter_tot_max);
     if (user_stat_fct)
-      printf(" %8d |", user_stat_max);
-    printf("\n");
+      PRINTF(" %8d |", user_stat_max);
+    PRINTF("\n");
   }
 
 #if !( defined MPI )
@@ -554,6 +548,7 @@ main(int argc, char *argv[])
   print_costs() ;
 #endif
   /* Seq code is now ending */
+  TDPRINTF(": processus ends now.\n") ;
 #else /* !( defined MPI) */
   AS_MPI_completion( &mpi_data ) ;
 #endif /* MPI */
