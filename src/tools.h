@@ -68,13 +68,36 @@
 # define OFFSET		16
 
 
+#if defined BACKTRACK
+#define SIZE_BACKTRACK 10
+#endif
+
 /*-------*
  * Types *
  *-------*/
 
+#if defined BACKTRACK
+typedef struct backtrack_configuration
+{
+  unsigned int * solution ; /* Array of pb_size int storing configuration */
+  /* TODO: add a vector of permutations to be done,
+           an index to know which have been done (oven value) to avoid memory
+	     management of this array
+	   and... ?
+  */
+
+} backtrack_configuration ;
+#endif /* BACKTRACK */
+
 /*------------------*
  * Global variables *
  *------------------*/
+
+/* Use backtrack array as circular array */
+backtrack_configuration Gbacktrack_array[SIZE_BACKTRACK] ;
+int Gbacktrack_array_begin ;
+int Gbacktrack_array_end ;
+int Gconfiguration_size_in_bytes ;
 
 /*------------*
  * Prototypes *
@@ -113,6 +136,14 @@ void Random_Permut(int *vec, int size, const int *actual_value, int base_value);
 void Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_value);
 
 int Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value);
+
+#if defined BACKTRACK
+/* Functions to manage the configurations array in a circular way */
+void
+queue_configuration( backtrack_configuration * item ) ;
+backtrack_configuration * 
+unqueue_configuration() ;
+#endif /* BACKTRACK */
 
 
 #ifndef No_Gcc_Warn_Unused_Result

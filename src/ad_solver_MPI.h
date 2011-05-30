@@ -15,12 +15,12 @@
 #include <mpi.h>
 #include <limits.h> /* INT_MAX */
 #include <assert.h> /* For assert(). gcc -D NDEBUG to get ride of tests */
-#if defined YC_DEBUG
-#  if !defined( YC_DEBUG_MPI )
-#    define YC_DEBUG_MPI
+#if defined DEBUG
+#  if !defined( DEBUG_MPI )
+#    define DEBUG_MPI
 #  endif
-#  define YC_DEBUG_RESTART
-#endif /* YC_DEBUG */
+#  define DEBUG_RESTART
+#endif /* DEBUG */
 
 /*----------------------*
  * Constants and macros
@@ -69,6 +69,11 @@ typedef struct
 #if defined MIN_ITER_BEFORE_RESTART
   unsigned int nbiter_since_restart ;
 #endif
+
+#if defined COMM_CONFIG
+  configuration list_of_configurations ; /* To store points of backtrack */
+#endif
+
 } Ad_Solve_MPIData ;
 
 /*------------------*

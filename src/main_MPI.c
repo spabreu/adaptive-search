@@ -31,7 +31,7 @@ AS_MPI_initialization( Main_MPIData * mpi_data_ptr )
   list_sent_msgs.previous = NULL ;
   list_recv_msgs.next = NULL ;
   list_recv_msgs.previous = NULL ;
-#if defined YC_DEBUG_QUEUE
+#if defined DEBUG_QUEUE
   list_sent_msgs.text = (char*)malloc(QUEUE_NAME_MAX_LENGTH*sizeof(char)) ;
   snprintf(list_sent_msgs.text,QUEUE_NAME_MAX_LENGTH,"Sent msgs") ;
   list_sent_msgs.size = 0 ;
@@ -42,7 +42,7 @@ AS_MPI_initialization( Main_MPIData * mpi_data_ptr )
   list_recv_msgs.nb_max_msgs_used = 0 ;
   list_allocated_msgs.text = (char*)malloc(QUEUE_NAME_MAX_LENGTH*sizeof(char));
   snprintf(list_allocated_msgs.text,QUEUE_NAME_MAX_LENGTH,"Allocated msgs") ;
-#endif /* YC_DEBUG_QUEUE */
+#endif /* DEBUG_QUEUE */
 
   /**************************** Initialize seed phase 1 **********************/
   if ((mpi_data_ptr->p_ad)->seed < 0) {
@@ -67,7 +67,7 @@ AS_MPI_initialization( Main_MPIData * mpi_data_ptr )
 					   mpi_data_ptr->param_a_ptr,
 					   mpi_data_ptr->param_c_ptr);
 
-#if defined YC_DEBUG  
+#if defined DEBUG  
   DPRINTF("Proc %d computed seed %d\n\n", my_num, (mpi_data_ptr->p_ad)->seed);
 #endif
 
@@ -95,11 +95,11 @@ AS_MPI_initialization( Main_MPIData * mpi_data_ptr )
 #if defined DEBUG
   PRINT0("- DEBUG\n") ;
 #endif
-#if defined YC_DEBUG_QUEUE
-  PRINT0("- YC_DEBUG_QUEUE\n") ;
+#if defined DEBUG_QUEUE
+  PRINT0("- DEBUG_QUEUE\n") ;
 #endif
-#if defined YC_DEBUG_PRINT_QUEUE
-  PRINT0("- YC_DEBUG_PRINT_QUEUE\n") ;
+#if defined DEBUG_PRINT_QUEUE
+  PRINT0("- DEBUG_PRINT_QUEUE\n") ;
 #endif
 #if defined MPI_ABORT
   PRINT0("- MPI_ABORT\n") ;
@@ -140,11 +140,11 @@ AS_MPI_initialization( Main_MPIData * mpi_data_ptr )
   /*************************** Launch async recv: will act as mailbox ********/
   the_message = get_tegami_from( &list_allocated_msgs) ;
 
-#if defined YC_DEBUG_MPI
+#if defined DEBUG_MPI
   gettimeofday(&tv, NULL);
   DPRINTF("%ld.%ld: %d launches MPI_Irecv(), any source\n",
 	  tv.tv_sec, tv.tv_usec, my_num) ;
-#endif /* YC_DEBUG_MPI */
+#endif /* DEBUG_MPI */
   MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
 	    MPI_ANY_SOURCE, 
 	    MPI_ANY_TAG,

@@ -107,16 +107,16 @@ main(int argc, char *argv[])
   double nb_same_var_by_iter_cum;
 
 
-  int    nb_restart_cum,              nb_restart_min,              nb_restart_max;
+  int    nb_restart_cum,           nb_restart_min,              nb_restart_max;
   double time_cum,                    time_min,                    time_max;
 
-  int    nb_iter_tot_cum,             nb_iter_tot_min,             nb_iter_tot_max;
-  int    nb_local_min_tot_cum,        nb_local_min_tot_min,        nb_local_min_tot_max;
-  int    nb_swap_tot_cum,             nb_swap_tot_min,             nb_swap_tot_max;
-  int    nb_reset_tot_cum,            nb_reset_tot_min,            nb_reset_tot_max;
+  int    nb_iter_tot_cum,          nb_iter_tot_min,             nb_iter_tot_max;
+  int    nb_local_min_tot_cum,     nb_local_min_tot_min,   nb_local_min_tot_max;
+  int    nb_swap_tot_cum,          nb_swap_tot_min,             nb_swap_tot_max;
+  int    nb_reset_tot_cum,         nb_reset_tot_min,          nb_reset_tot_max;
   double nb_same_var_by_iter_tot_cum, nb_same_var_by_iter_tot_min, nb_same_var_by_iter_tot_max;
 
-  int    user_stat_cum,               user_stat_min,               user_stat_max;
+  int    user_stat_cum,             user_stat_min,               user_stat_max;
   char buff[256], str[32];
 
   /* Seeds generation */
@@ -262,6 +262,14 @@ main(int argc, char *argv[])
 	 "and restart at most %d times\n",
 	 p_ad->restart_limit, p_ad->restart_max) ;
 
+  PRINT0("Options:\n") ;
+  PRINT0("- Backtrack when reset: ") ;
+#if defined BACKTRACK
+  PRINT0("ON\n") ;
+#else
+  PRINT0("OFF\n") ;
+#endif
+
 #if defined MPI
   PRINT0("Perform communications every %d iterations (default %d)\n",
 	 count_to_communication, CBLOCK_DEFAULT ) ;
@@ -274,6 +282,18 @@ main(int argc, char *argv[])
   MPI_Barrier(MPI_COMM_WORLD);
 #endif /* MPI_BEGIN_BARRIER */
 #endif /* MPI */
+
+#if defined BACKTRACK
+  /* Note: This has to be done after p_ad initialization! */
+  Gbacktrack_array_begin = 0 ;
+  Gbacktrack_array_end = 0 ;
+  Gconfiguration_size_in_bytes = p_ad->size_in_bytes ;
+  for( i=0 ; i<SIZE_BACKTRACK ; i++ )
+    Gbacktrack_array[i].solution = (unsigned int*)
+      malloc(Gconfiguration_size_in_bytes) ;
+  /* YC->all: do the rest of initilization */
+#endif
+
 
   TPRINT0("%d begins its resolution!\n", my_num) ;
 
@@ -600,14 +620,14 @@ Set_Initial(AdData *p_ad)
       
       MPI_Bcast(p_ad->sol, p_ad->size, MPI_INT, 0, MPI_COMM_WORLD);
       
-# ifdef YC_DEBUG
+# ifdef DEBUG
       printf("Proc %d: ", my_num);
       for (i = 0; i < p_ad->size; i++)
 	printf("%4d", p_ad->sol[i]);
       
       printf("\n");
       fflush(stdout);
-# endif /* YC_DEBUG */
+# endif /* DEBUG */
       
       p_ad->do_not_init = 1;
       break;

@@ -79,7 +79,8 @@ option(AS_USE_SEQ              	"Build AS in sequential." ON)
 option(AS_USE_DEBUG            	"Build AS with Debug mode." OFF)
 option(AS_USE_ABORT            	"Build AS with Abort termination." OFF)
 option(AS_USE_BARRIER          	"Build AS with Barrier Sync. beginning." OFF)
-
+option(AS_USE_BACKTRACK		"Build AS with backtracking when reset." OFF)
+option(AS_USE_COMM_CONFIG	"Build AS with communication of config." OFF)
 
 # --------------------- DEPENDENCIES TOWARDS "CLASSIC" C++ HEADERS ---------
 # This is just a convenience to advance the detection of any potential missing
@@ -277,7 +278,7 @@ ENDIF( CMAKE_COMPILER_IS_GNUCC )
 # ------------------ PROJECT DEFINITION ---------------------
 
 IF (AS_USE_DEBUG)
-    add_definitions(-DDEBUG=1 -DYC_DEBUG=1 -DYC_DEBUG_MPI=1 -Wall -fPIC)
+    add_definitions(-DDEBUG=1 -DDEBUG_MPI=1 -Wall -fPIC)
 ELSE (AS_USE_DEBUG)
     add_definitions(-DDEBUG=0)
 ENDIF (AS_USE_DEBUG)
@@ -306,6 +307,19 @@ if (AS_USE_BARRIER)
    add_definitions(-DMPI_BEGIN_BARRIER=1)
 endif (AS_USE_BARRIER)
 
+if (AS_USE_BACKTRACK)
+   add_definitions(-DBACKTRACK=1)
+endif (AS_USE_BACKTRACK)
+
+if (AS_USE_COMM_CONFIG)
+   if (AS_USE_SEQ)
+      message(FATAL_ERROR "Communication can only be done with non seq code.")
+   endif (AS_USE_SEQ)
+   if (NOT AS_USE_BACKTRACK)
+        message(WARNING "Communicating needs backtracking code: turned on.")
+        set(AS_USE_BACKTRACK ON CACHE BOOL "Backtracking reset" FORCE)
+   endif (NOT AS_USE_BACKTRACK)
+endif (AS_USE_COMM_CONFIG)
 
 # --------------------------------------------------------------------------
 add_subdirectory(src)

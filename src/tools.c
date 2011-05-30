@@ -23,6 +23,10 @@
 #include "tools.h"
 #include "stdlib.h"                        /* random() */
 
+#if defined BACKTRACK
+#include <string.h>                        /* memcpy() */
+#endif /* BACKTRACK */
+
 /*-----------*
  * Constants *
  *-----------*/
@@ -847,3 +851,47 @@ main(int argc, char *argv[])
 }
 
 #endif /* USE_ALONE */
+
+
+#if defined BACKTRACK
+void
+queue_configuration( backtrack_configuration * item )
+{
+  memcpy( &(Gbacktrack_array[Gbacktrack_array_end].solution),
+	  item->solution,
+	  Gconfiguration_size_in_bytes) ;
+  /* YC->all: todo manage the rest of structure */
+
+  Gbacktrack_array_end++ ;
+  if( Gbacktrack_array_end == SIZE_BACKTRACK )
+    Gbacktrack_array_end = 0 ;
+
+  if( Gbacktrack_array_end == Gbacktrack_array_begin ) {
+    Gbacktrack_array_begin++ ;
+    if( Gbacktrack_array_begin == SIZE_BACKTRACK )
+      Gbacktrack_array_begin = 0 ;
+  }
+}
+backtrack_configuration *
+unqueue_configuration()
+{
+  backtrack_configuration * item ;
+
+  if( Gbacktrack_array_begin == Gbacktrack_array_end )
+    return NULL ;
+
+  /* YC->all: we can directly manage (permutations/reset/restart) here... */
+  item = malloc(sizeof(backtrack_configuration)) ;
+  item->solution = malloc(Gconfiguration_size_in_bytes) ;
+  Gbacktrack_array_end-- ;
+  if( Gbacktrack_array_end < 0 )
+    Gbacktrack_array_end = SIZE_BACKTRACK-1 ;
+
+  memcpy( item->solution,
+	  &(Gbacktrack_array[Gbacktrack_array_end].solution),
+	  Gconfiguration_size_in_bytes ) ;
+  
+  /* YC->all: manage the rest of structure -- permutations, etc. */
+  return(item) ; 
+}
+#endif /* BACKTRACK */

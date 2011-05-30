@@ -123,10 +123,10 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data,
 	/******************************* LS_KILLALL *********************/
       case LS_KILLALL:
 	/* Then quits! */
-#if defined YC_DEBUG
+#if defined DEBUG
 	DPRINTF("LS_KILLALL from %d\n",
 		the_message->status.MPI_SOURCE) ;
-#endif /* YC_DEBUG */
+#endif /* DEBUG */
 	if( my_num == 0 ) {
 	  /* Reuse msg to send LSKILLALL to everyone */
 	  the_message->message[0] = mpi_size ;
@@ -162,7 +162,7 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data,
 #if (defined COMM_COST) || (defined ITER_COST)
 	/******************************* LS_COST *********************/
       case LS_COST:     /* take the min! */
-#  if defined YC_DEBUG
+#  if defined DEBUG
 	DPRINTF("%d takes the min between min'_recv(%d) and recvd(%d)\n",
 		my_num,
 		mixed_received_msg_cost, the_message->message[1]) ;
@@ -178,7 +178,7 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data,
 	push_tegami_on( the_message, &list_recv_msgs) ;
 	/* Launch new async recv */
 	the_message = get_tegami_from( &list_allocated_msgs) ;
-#  if defined YC_DEBUG_MPI
+#  if defined DEBUG_MPI
 	TDPRINTF(": %d launches MPI_Irecv(), any source\n", my_num) ;
 #  endif
 	MPI_Irecv(&(the_message->message), SIZE_MESSAGE, MPI_INT,
@@ -216,7 +216,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
     Ad_Solver_free_messages( mpi_data_ptr ) ;
     number_received_msgs = Ad_Solver_recv_messages( mpi_data_ptr, p_ad ) ;
     
-#if defined YC_DEBUG
+#if defined DEBUG
     DPRINTF("%d received %d messages in total this time\n",
 	    my_num,
 	    number_received_msgs) ;
@@ -229,12 +229,12 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 #if (defined COMM_COST) || (defined ITER_COST)
 	/******************************* LS_COST *********************/
       case LS_COST:
-#if defined YC_DEBUG_MPI
+#if defined DEBUG_MPI
 	TDPRINTF(": %d treats LS_COST of %d from %d\n",
 		 my_num,
 		 tmp_tegami->message[1],
 		 tmp_tegami->status.MPI_SOURCE) ;
-#endif /* YC_DEBUG_MPI */
+#endif /* DEBUG_MPI */
 	/* Crash cost with our value and avoids a test */
 	tmp_tegami->message[1] = mixed_received_msg_cost ;
 #if defined ITER_COST
@@ -251,7 +251,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 	exit(-1) ;
       } /* switch( the_message->status.MPI_TAG ) { */
     } /* for( i=0 ; i<number_received_msgs ; i++ ) { */
-#if defined YC_DEBUG
+#if defined DEBUG
     DPRINTF("-------------- %d: Impact\n", my_num) ;
 #endif	
     /****************** Repercusion of messages on me *************/
@@ -264,7 +264,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 	iter_for_best_cost_received = mixed_received_msg_iter ;
 #endif
       }
-#if defined YC_DEBUG
+#if defined DEBUG
       DPRINTF("%d: Best recv cost is now %d\n",
 	      my_num, best_cost_received) ;
 #if defined ITER_COST
@@ -275,7 +275,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 #if defined COMM_COST
       if( (unsigned)p_ad->total_cost > mixed_received_msg_cost ) {
 	ran_tmp=(((float)random())/RAND_MAX)*100 ;
-#if defined YC_DEBUG	  
+#if defined DEBUG	  
 	DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		my_num,
 		p_ad->total_cost,
@@ -285,7 +285,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 #endif
 	
 	if( ran_tmp < proba_communication ) {
-#if defined YC_DEBUG_RESTART
+#if defined DEBUG_RESTART
 	  TDPRINTF(": Proc %d restarts!\n", my_num) ;
 #endif
 	  return 10 ;
@@ -299,7 +299,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 	if( mixed_received_msg_iter < p_ad->nb_iter ) {
 	  
 	  ran_tmp=(((float)random())/RAND_MAX)*100 ;
-#if defined YC_DEBUG	  
+#if defined DEBUG	  
 	  DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		  my_num,
 		  p_ad->total_cost,
@@ -308,7 +308,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 		  proba_communication) ;
 #endif
 	  if( ran_tmp < proba_communication ) {
-#if defined YC_DEBUG_RESTART
+#if defined DEBUG_RESTART
 	    TDPRINTF(": Proc %d restarts!\n", my_num) ;
 #endif
 	    return 10 ;
@@ -318,7 +318,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 #endif /* ITER_COST */
     } /* if( number_received_msgs > 0 ) { */
 #endif /* COMM_COST || ITER_COST */
-#if defined YC_DEBUG
+#if defined DEBUG
     DPRINTF("-------------- %d: Sending\n", my_num) ;
 #endif	
     /*-------------------------------------------------------------*/
@@ -327,9 +327,9 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 #if (defined COMM_COST) || (defined ITER_COST)
     /************** Sends best cost? ************/
     if( (unsigned)best_cost < best_cost_sent ) {
-#if defined YC_DEBUG
+#if defined DEBUG
       DPRINTF("Proc %d sends cost %d\n", my_num, best_cost) ;
-#endif /* YC_DEBUG */
+#endif /* DEBUG */
       s_cost_message[0] = mpi_size ;
       s_cost_message[1] = best_cost ;
 #if defined ITER_COST
@@ -421,7 +421,7 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
   tegami * message ;
   unsigned int destination_node ;
 
-#if defined YC_DEBUG_MPI
+#if defined DEBUG_MPI
   struct timeval tv ;
   unsigned int sentNodes[NBMAXSTEPS] ; /* In fact, Log2(n)! */
 #endif
@@ -434,7 +434,7 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
   /* Use Log(n) algo */
   nb_steps = ceil(log2(range)) ;
 
-#if defined YC_DEBUG_MPI
+#if defined DEBUG_MPI
   gettimeofday(&tv, NULL);
   switch( tag_mpi ) {
   case LS_KILLALL:
@@ -478,7 +478,7 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
     /* For next iteration */
     range = range - message->message[0] ;
 
-#if defined YC_DEBUG_MPI
+#if defined DEBUG_MPI
     /* Send to ... */
     gettimeofday(&tv, NULL);
     sentNodes[i-1] = destination_node ;
@@ -503,14 +503,14 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
 	    message->message[0],
 	    sentNodes[i-1]) ;
 #endif
-#endif /* YC_DEBUG_MPI */
+#endif /* DEBUG_MPI */
     /* Sends */
     MPI_Isend(message->message, SIZE_MESSAGE, MPI_INT,
 	      destination_node,
 	      tag_mpi, MPI_COMM_WORLD, &(message->handle)) ;
     push_tegami_on( message, &list_sent_msgs) ;
   }
-#if defined YC_DEBUG_MPI
+#if defined DEBUG_MPI
   DPRINTF("-- %d sent to [", my_num) ;
   for( i=0 ; i< nb_steps ; ++i )
     DPRINTF(" %d ", sentNodes[i] ) ;

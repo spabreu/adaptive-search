@@ -19,12 +19,12 @@ push_tegami_on( tegami * msg, tegami * head )
   } else head->previous = msg ;
   msg->previous = NULL ;
   head->next = msg ;
-#ifdef YC_DEBUG_QUEUE
+#ifdef DEBUG_QUEUE
   head->size++ ;
   if( head->nb_max_msgs_used < head->size )
     head->nb_max_msgs_used = head->size ;
 #endif
-#ifdef YC_DEBUG_PRINT_QUEUE
+#ifdef DEBUG_PRINT_QUEUE
   DPRINTF("Stack %s: (+1->) %d elts; max_msg=%d\n",
 	  head->text, head->size, head->nb_max_msgs_used)
 #endif
@@ -34,16 +34,16 @@ tegami *
 get_tegami_from( tegami * head )
 {
   tegami * item = head->next ;
-#ifdef YC_DEBUG_QUEUE
+#ifdef DEBUG_QUEUE
   assert( head->next != NULL ) ;
 #endif
   head->next = item->next ;
   head->previous = item->previous ;
-#ifdef YC_DEBUG_QUEUE
+#ifdef DEBUG_QUEUE
   head->size-- ;
   assert( head->size >= 0 ) ;
 #endif
-#ifdef YC_DEBUG_PRINT_QUEUE
+#ifdef DEBUG_PRINT_QUEUE
   DPRINTF("Stack %s: (-1->) %d elts\n", head->text, head->size)
 #endif
   return item ;
@@ -58,11 +58,11 @@ unqueue_tegami_from( tegami * head )
     head->next = NULL ;
   }
   head->previous = item->previous ;
-#ifdef YC_DEBUG_QUEUE
+#ifdef DEBUG_QUEUE
   head->size-- ;
   assert( head->size >= 0 ) ;
 #endif
-#ifdef YC_DEBUG_PRINT_QUEUE
+#ifdef DEBUG_PRINT_QUEUE
   DPRINTF("Stack %s: (-1->) %d elts\n", head->text, head->size)
 #endif
   return item ;

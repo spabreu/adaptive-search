@@ -12,7 +12,7 @@
 #define AS_TOOLS_MPI_H
 #include <stdio.h>       /* printf in DPRINTF macro */
 #include <mpi.h>
-#if defined YC_DEBUG_QUEUE
+#if defined DEBUG_QUEUE
 #  include <assert.h>
 #endif
 
@@ -24,8 +24,8 @@
 #define DISPLAY_ALL 1
 #endif
 
-#if (defined YC_DEBUG_PRINT_QUEUE)&&!(defined YC_DEBUG_QUEUE)
-#  define YC_DEBUG_QUEUE
+#if (defined DEBUG_PRINT_QUEUE)&&!(defined DEBUG_QUEUE)
+#  define DEBUG_QUEUE
 #endif
 
 #if defined ITER_COST
@@ -73,14 +73,19 @@
 
 typedef struct tegami
 {
-#if defined YC_DEBUG_QUEUE
+#if defined DEBUG_QUEUE
   char * text ;
   int size ;
   int nb_max_msgs_used ;
 #endif
+#if defined COMM_CONFIG
+  backtrack_configuration configuration ;
+#endif
+
   unsigned int message[SIZE_MESSAGE] ;
   MPI_Status status ;                /* Status of communication */
   MPI_Request handle ;               /* Handle on communication */
+
   struct tegami * next ;
   struct tegami * previous ;
 } tegami ;
