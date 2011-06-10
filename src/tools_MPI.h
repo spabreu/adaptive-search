@@ -29,7 +29,7 @@
 #endif
 
 #if defined ITER_COST
-#  define SIZE_MESSAGE 3 /* Use 3 for nb iter */
+#  define SIZE_MESSAGE 4 /* Use 3 and 4 for nb iter (splitted into two 32-bit integers) */
 #else
 #  define SIZE_MESSAGE 2
 #endif

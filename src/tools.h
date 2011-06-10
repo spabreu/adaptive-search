@@ -76,10 +76,18 @@
  * Types *
  *-------*/
 
-#if defined BACKTRACK
+#if (defined BACKTRACK) || (defined COMM_CONFIG)
 typedef struct backtrack_configuration
 {
-  unsigned int * solution ; /* Array of pb_size int storing configuration */
+  unsigned int *solution ;	/* Array of pb_size int storing configuration */
+  int		cost;		/* cost of the configuration */
+  int		resets;		/* number of resets performed */
+
+  int		high_iter;	/* number of iterations performed (high values) */
+  int		low_iter;	/* number of iterations performed (low values) */
+				/* number of iterations = concat(high_iter, low_iter) */
+				/* this is to avoid a long long int communication */
+
   /* TODO: add a vector of permutations to be done,
            an index to know which have been done (oven value) to avoid memory
 	     management of this array
@@ -87,17 +95,19 @@ typedef struct backtrack_configuration
   */
 
 } backtrack_configuration ;
-#endif /* BACKTRACK */
+#endif /* BACKTRACK || COMM_CONFIG */
 
 /*------------------*
  * Global variables *
  *------------------*/
 
+#if (defined BACKTRACK) || (defined COMM_CONFIG)
 /* Use backtrack array as circular array */
 backtrack_configuration Gbacktrack_array[SIZE_BACKTRACK] ;
 int Gbacktrack_array_begin ;
 int Gbacktrack_array_end ;
 int Gconfiguration_size_in_bytes ;
+#endif /* BACKTRACK || COMM_CONFIG */
 
 /*------------*
  * Prototypes *
@@ -137,13 +147,19 @@ void Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_
 
 int Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value);
 
-#if defined BACKTRACK
+#if (defined BACKTRACK) || (defined COMM_CONFIG)
+/* To split a 64-bit long long int into two 32-bit unsigned int */
+void split(long long int, unsigned int*, unsigned int*);
+
+/* To concat two 32-bit unsigned int into a 64-bit long long int */
+long long int concat(unsigned int, unsigned int);
+
 /* Functions to manage the configurations array in a circular way */
 void
 queue_configuration( backtrack_configuration * item ) ;
 backtrack_configuration * 
 unqueue_configuration() ;
-#endif /* BACKTRACK */
+#endif /* BACKTRACK || COMM_CONFIG */
 
 
 #ifndef No_Gcc_Warn_Unused_Result

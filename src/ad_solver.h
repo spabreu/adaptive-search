@@ -48,7 +48,7 @@ typedef struct
   int freeze_swap;		/* nb swaps to freeze 2 swapped vars */
   int reset_limit;		/* nb of frozen vars before reset */
   int nb_var_to_reset;		/* nb variables to reset */
-  int restart_limit;		/* nb of iterations before restart */
+  long long int restart_limit;	/* nb of iterations before restart */
   int restart_max;		/* max nb of times to restart (to retry) */
   int reinit_after_if_swap;	/* true if Cost_Of_Solution must be called twice */
 
@@ -62,14 +62,16 @@ typedef struct
   int total_cost;		/* total cost of the current solution */
   int nb_restart;		/* nb of restarts */
 
-  int nb_iter;			/* nb of iterations (can also be used as current no for marks) */
+  long long int nb_iter;	/* nb of iterations (can also be used as current no for marks) */
+
   int nb_swap;			/* nb of swaps (used as current no for marks) */
   int nb_same_var;		/* nb of vars with highest cost */
   int nb_reset;			/* nb of resets */
   int nb_local_min;		/* nb of local mins */
 
 				/* same counters across restarts */
-  int nb_iter_tot;		/* nb of iterations total */
+  long long int nb_iter_tot;	/* nb of iterations total */
+
   int nb_swap_tot;		/* nb of swaps total */
   int nb_same_var_tot;		/* nb of vars with highest cost total */
   int nb_reset_tot;		/* nb of resets total */

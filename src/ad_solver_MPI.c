@@ -77,13 +77,13 @@ Ad_Solve_init_MPI_data( Ad_Solve_MPIData * mpi_data )
 
 /* Try to free old messages in their sending order */
 int
-Ad_Solver_free_messages( Ad_Solve_MPIData * mpi_data_ptr )
+Ad_Solver_free_messages( Ad_Solve_MPIData * mpi_data )
 {
   int flag = 1 ;       /* .. if operation completed */
 
   TDPRINTF("--------------- %d,%d: Free older messages\n", 
 	  my_num,
-	  mpi_data_ptr->nb_block) ;
+	  mpi_data->nb_block) ;
   while( (list_sent_msgs.next != NULL) && (flag!=0) ) {
     TDPRINTF(" Proc %d launches MPI_TEST()\n", my_num) ;
     MPI_Test( &((list_sent_msgs.previous)->handle), &flag,
@@ -107,7 +107,7 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data,
   /************** Check how many msg were received ***************/
   number_received_msgs = 0 ;
 #if (defined COMM_COST) || (defined ITER_COST)
-  mixed_received_msg_cost = INT_MAX ;
+  mpi_data->mixed_received_msg_cost = INT_MAX ;
 #endif
   do {
     TDPRINTF(": Proc %d launches MPI_TEST()\n", my_num) ;
@@ -165,13 +165,16 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data,
 #  if defined DEBUG
 	DPRINTF("%d takes the min between min'_recv(%d) and recvd(%d)\n",
 		my_num,
-		mixed_received_msg_cost, the_message->message[1]) ;
+		mpi_data->mixed_received_msg_cost, the_message->message[1]) ;
 #  endif
-	if( mixed_received_msg_cost > the_message->message[1] ) {
-	  mixed_received_msg_cost = the_message->message[1] ;
+	if( mpi_data->mixed_received_msg_cost > the_message->message[1] ) {
+	  mpi_data->mixed_received_msg_cost = the_message->message[1] ;
 #  if defined ITER_COST
 	  /* Save according iter */
-	  mixed_received_msg_iter = the_message->message[2] ;
+	  mpi_data->mixed_received_msg_iter = (long long int)the_message->message[2];
+	  mpi_data->mixed_received_msg_iter = mpi_data->mixed_received_msg_iter << 32;
+	  mpi_data->mixed_received_msg_iter |= the_message->message[3];
+
 #  endif
 	}
 	/* Store recvd msg to treat it later */
@@ -199,7 +202,7 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data,
 }
 
 int
-Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
+Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data,
 				    AdData * p_ad )
 {
   int i ;
@@ -212,9 +215,9 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
   int flag = 0 ;       /* .. if operation completed */
 
   if( (p_ad->nb_iter % count_to_communication)==0 ) {
-    mpi_data_ptr->nb_block++ ;
-    Ad_Solver_free_messages( mpi_data_ptr ) ;
-    number_received_msgs = Ad_Solver_recv_messages( mpi_data_ptr, p_ad ) ;
+    mpi_data->nb_block++ ;
+    Ad_Solver_free_messages( mpi_data ) ;
+    number_received_msgs = Ad_Solver_recv_messages( mpi_data, p_ad ) ;
     
 #if defined DEBUG
     DPRINTF("%d received %d messages in total this time\n",
@@ -236,9 +239,10 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 		 tmp_tegami->status.MPI_SOURCE) ;
 #endif /* DEBUG_MPI */
 	/* Crash cost with our value and avoids a test */
-	tmp_tegami->message[1] = mixed_received_msg_cost ;
+	tmp_tegami->message[1] = mpi_data->mixed_received_msg_cost ;
 #if defined ITER_COST
-	tmp_tegami->message[2] = mixed_received_msg_iter ;
+	tmp_tegami->message[2] = (int)(mpi_data->mixed_received_msg_iter >> 32);
+	tmp_tegami->message[3] = (int)(mpi_data->mixed_received_msg_iter & 0xFFFFFFFF);
 #endif
 	/* [cont. to] Distribute the information */
 	send_log_n( tmp_tegami->message, LS_COST ) ;
@@ -258,17 +262,17 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
 #if (defined COMM_COST) || (defined ITER_COST)
     if( number_received_msgs > 0 ) {
       /** Do we take into account the received cost? **/
-      if( mixed_received_msg_cost < best_cost_received ) {
-	best_cost_received = mixed_received_msg_cost ;
+      if( mpi_data->mixed_received_msg_cost < mpi_data->best_cost_received ) {
+	mpi_data->best_cost_received = mpi_data->mixed_received_msg_cost ;
 #if defined ITER_COST
-	iter_for_best_cost_received = mixed_received_msg_iter ;
+	mpi_data->iter_for_best_cost_received = mpi_data->mixed_received_msg_iter ;
 #endif
       }
 #if defined DEBUG
       DPRINTF("%d: Best recv cost is now %d\n",
-	      my_num, best_cost_received) ;
+	      my_num, mpi_data->best_cost_received) ;
 #if defined ITER_COST
-      DPRINTF("... with #iter %d\n", iter_for_best_cost_received ) ;
+      DPRINTF("... with #iter %lld\n", mpi_data->iter_for_best_cost_received ) ;
 #endif
 #endif
       /******************************* COMM_COST ****************/
@@ -295,15 +299,15 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
       /******************************* ITER_COST ****************/
 #if defined ITER_COST
       /* Best cost AND smaller #iter */
-      if( (unsigned)p_ad->total_cost > mixed_received_msg_cost ) {
-	if( mixed_received_msg_iter < p_ad->nb_iter ) {
+      if( (unsigned)p_ad->total_cost > mpi_data->mixed_received_msg_cost ) {
+	if( mpi_data->mixed_received_msg_iter < p_ad->nb_iter ) {
 	  
 	  ran_tmp=(((float)random())/RAND_MAX)*100 ;
 #if defined DEBUG	  
 	  DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		  my_num,
 		  p_ad->total_cost,
-		  mixed_received_msg_cost,
+		  mpi_data->mixed_received_msg_cost,
 		  ran_tmp,
 		  proba_communication) ;
 #endif
@@ -326,19 +330,20 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr,
     /*-------------------------------------------------------------*/
 #if (defined COMM_COST) || (defined ITER_COST)
     /************** Sends best cost? ************/
-    if( (unsigned)best_cost < best_cost_sent ) {
+    if( (unsigned)best_cost < mpi_data->best_cost_sent ) {
 #if defined DEBUG
       DPRINTF("Proc %d sends cost %d\n", my_num, best_cost) ;
 #endif /* DEBUG */
-      s_cost_message[0] = mpi_size ;
-      s_cost_message[1] = best_cost ;
+      mpi_data->s_cost_message[0] = mpi_size ;
+      mpi_data->s_cost_message[1] = best_cost ;
 #if defined ITER_COST
-      s_cost_message[1] = p_ad->nb_iter ;
+	mpi_data->s_cost_message[2] = (int)(p_ad->nb_iter >> 32);
+	mpi_data->s_cost_message[3] = (int)(p_ad->nb_iter & 0xFFFFFFFF);
 #endif
-      send_log_n(s_cost_message, LS_COST) ;	      
-      best_cost_sent = best_cost ;
+      send_log_n(mpi_data->s_cost_message, LS_COST) ;	      
+      mpi_data->best_cost_sent = best_cost ;
 #if defined ITER_COST
-      iter_of_best_cost_sent = p_ad->nb_iter ;
+      mpi_data->iter_of_best_cost_sent = p_ad->nb_iter ;
 #endif
     } /* if( best_cost < best_cost_sent ) { */
 #endif /* COMM_COST || ITER_COST */
@@ -467,7 +472,8 @@ send_log_n( unsigned int * msg, protocol_msg tag_mpi )
 
 #if defined ITER_COST
     /* #iter */
-    message->message[2] = msg[2] ;
+    message->message[2] = msg[2];
+    message->message[3] = msg[3];
 #endif
     /* Winner */    
     message->message[1] = msg[1] ;
