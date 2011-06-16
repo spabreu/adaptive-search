@@ -285,25 +285,36 @@ main(int argc, char *argv[])
 
 #if defined BACKTRACK
   /* Note: This has to be done after p_ad initialization! */
-  Gbacktrack_array_begin = 0 ;
-  Gbacktrack_array_end = 0 ;
-  Gconfiguration_size_in_bytes = p_ad->size_in_bytes ;
-  for( i=0 ; i<SIZE_BACKTRACK ; i++ )
-    Gbacktrack_array[i].solution = (unsigned int*)
-      malloc(Gconfiguration_size_in_bytes) ;
+  /* Gbacktrack_array_begin = 0 ; */
+  /* Gbacktrack_array_end = 0 ; */
+  /* Gconfiguration_size_in_bytes = p_ad->size_in_bytes ; */
+  /* for( i=0 ; i<SIZE_BACKTRACK ; i++ ) */
+  /*   Gbacktrack_array[i].configuration = (unsigned int*) */
+  /*     malloc(Gconfiguration_size_in_bytes) ; */
   /* YC->all: do the rest of initilization */
+
+  gl_elitePool.config_list_begin		= NULL;
+  gl_elitePool.config_list_end			= NULL;
+  gl_elitePool.config_list_size			= 0;
+  gl_elitePool.configuration_size_in_bytes	= p_ad->size_in_bytes;
 #endif
 
 
   TPRINT0("%d begins its resolution!\n", my_num) ;
+  TPRINT0("count = %d\n", count);
+
 
   if (count <= 0) /* Note: MPI => count=1 */
     {
       Set_Initial(p_ad);
 
+      TPRINT0("TRACE 1\n");
+
       time_one0 = (double) User_Time();
       Solve(p_ad);
       time_one = ((double) User_Time() - time_one0) / 1000;
+
+      TPRINT0("TRACE 2\n");
 
       if (p_ad->exhaustive)
 	DPRINTF("exhaustive search\n") ;

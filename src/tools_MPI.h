@@ -71,6 +71,18 @@
  * Types *
  *-------*/
 
+#if defined COMM_CONFIG
+typedef struct configuration
+{
+  unsigned int *configuration;	/* Array of pb_size int storing configuration */
+  int		cost;		/* cost of the configuration */
+  int		resets;		/* number of resets performed */
+  long long int iterations;	/* number of iterations performed */
+
+} configuration;
+#endif /* COMM_CONFIG */
+
+
 typedef struct tegami
 {
 #if defined DEBUG_QUEUE
@@ -79,7 +91,7 @@ typedef struct tegami
   int nb_max_msgs_used ;
 #endif
 #if defined COMM_CONFIG
-  backtrack_configuration configuration ;
+  configuration configuration ;
 #endif
 
   unsigned int message[SIZE_MESSAGE] ;

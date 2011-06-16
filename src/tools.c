@@ -1,4 +1,3 @@
-
 /*
  *  Adaptive search
  *
@@ -853,7 +852,7 @@ main(int argc, char *argv[])
 #endif /* USE_ALONE */
 
 
-#if (defined BACKTRACK) || (defined COMM_CONFIG)
+#if defined BACKTRACK
 
 void split(long long int tooLong, unsigned int *high, unsigned int *low)
 {
@@ -866,44 +865,120 @@ long long int concat(unsigned int high, unsigned int low)
   return ((long long int)high << 32 | low);
 }
 
-void
-queue_configuration( backtrack_configuration * item )
+void pushConfiguration(backtrack_configuration *item)
 {
-  memcpy( &(Gbacktrack_array[Gbacktrack_array_end].solution),
-	  item->solution,
-	  Gconfiguration_size_in_bytes) ;
-  /* YC->all: todo manage the rest of structure */
+  /* delete the last element if pool size = max */
+  if (gl_elitePool.config_list_size == SIZE_BACKTRACK)
+    {
+      backtrack_configuration *ptr = gl_elitePool.config_list_end;
+      gl_elitePool.config_list_end = gl_elitePool.config_list_end->previous;
+      gl_elitePool.config_list_end->next = NULL;
+      gl_elitePool.config_list_size--;
+      free(ptr->configuration);
+      free(ptr);      
+    }
 
-  Gbacktrack_array_end++ ;
-  if( Gbacktrack_array_end == SIZE_BACKTRACK )
-    Gbacktrack_array_end = 0 ;
+  if (gl_elitePool.config_list_size == 0)
+    {
+      gl_elitePool.config_list_begin = gl_elitePool.config_list_end = item;
+      item->next = item->previous = NULL;
+    }
+  else
+    {
+      backtrack_configuration *run = gl_elitePool.config_list_begin;
 
-  if( Gbacktrack_array_end == Gbacktrack_array_begin ) {
-    Gbacktrack_array_begin++ ;
-    if( Gbacktrack_array_begin == SIZE_BACKTRACK )
-      Gbacktrack_array_begin = 0 ;
-  }
+      // if we must insert item to the first place
+      if (run->cost > item->cost)
+	{
+	  gl_elitePool.config_list_begin = item;
+	  item->next = run;
+	  item->previous = NULL;
+	  run->previous = item;
+	}
+      // otherwise
+      else
+	{
+	  while((run->next != NULL) && (run->next->cost < item->cost))
+	    run = run->next;
+
+	  item->next = run->next;
+	  item->previous = run;
+	  run->next = item;
+	  if(item->next != NULL)
+	    {
+	      item->next->previous = item;
+	    }
+	  else
+	    {
+	      gl_elitePool.config_list_end = item;
+	    }
+	}
+    }
+  gl_elitePool.config_list_size++;
 }
-backtrack_configuration *
-unqueue_configuration()
+
+backtrack_configuration* popConfiguration()
 {
-  backtrack_configuration * item ;
+  if (gl_elitePool.config_list_size == 0)
+    {
+      return NULL;
+    }
+  else
+    {
+      backtrack_configuration *toPop = gl_elitePool.config_list_begin;
+      if (gl_elitePool.config_list_size == 1)
+	{
+	  gl_elitePool.config_list_begin = gl_elitePool.config_list_end = NULL;
+	}
+      else
+	{
+	  gl_elitePool.config_list_begin = gl_elitePool.config_list_begin->next;
+	  gl_elitePool.config_list_begin->previous = NULL;
+	  toPop->next = NULL;
+	}
+      gl_elitePool.config_list_size--;
+      return toPop;
+    }  
+}
 
-  if( Gbacktrack_array_begin == Gbacktrack_array_end )
-    return NULL ;
+/* void */
+/* queue_configuration( backtrack_configuration * item ) */
+/* { */
+/*   memcpy( &(Gbacktrack_array[Gbacktrack_array_end].solution), */
+/* 	  item->solution, */
+/* 	  Gconfiguration_size_in_bytes) ; */
+/*   /\* YC->all: todo manage the rest of structure *\/ */
 
-  /* YC->all: we can directly manage (permutations/reset/restart) here... */
-  item = malloc(sizeof(backtrack_configuration)) ;
-  item->solution = malloc(Gconfiguration_size_in_bytes) ;
-  Gbacktrack_array_end-- ;
-  if( Gbacktrack_array_end < 0 )
-    Gbacktrack_array_end = SIZE_BACKTRACK-1 ;
+/*   Gbacktrack_array_end++ ; */
+/*   if( Gbacktrack_array_end == SIZE_BACKTRACK ) */
+/*     Gbacktrack_array_end = 0 ; */
 
-  memcpy( item->solution,
-	  &(Gbacktrack_array[Gbacktrack_array_end].solution),
-	  Gconfiguration_size_in_bytes ) ;
+/*   if( Gbacktrack_array_end == Gbacktrack_array_begin ) { */
+/*     Gbacktrack_array_begin++ ; */
+/*     if( Gbacktrack_array_begin == SIZE_BACKTRACK ) */
+/*       Gbacktrack_array_begin = 0 ; */
+/*   } */
+/* } */
+
+/* backtrack_configuration * unqueue_configuration() */
+/* { */
+/*   backtrack_configuration * item ; */
+
+/*   if( Gbacktrack_array_begin == Gbacktrack_array_end ) */
+/*     return NULL ; */
+
+/*   /\* YC->all: we can directly manage (permutations/reset/restart) here... *\/ */
+/*   item = malloc(sizeof(backtrack_configuration)) ; */
+/*   item->solution = malloc(Gconfiguration_size_in_bytes) ; */
+/*   Gbacktrack_array_end-- ; */
+/*   if( Gbacktrack_array_end < 0 ) */
+/*     Gbacktrack_array_end = SIZE_BACKTRACK-1 ; */
+
+/*   memcpy( item->solution, */
+/* 	  &(Gbacktrack_array[Gbacktrack_array_end].solution), */
+/* 	  Gconfiguration_size_in_bytes ) ; */
   
-  /* YC->all: manage the rest of structure -- permutations, etc. */
-  return(item) ; 
-}
-#endif /* BACKTRACK || COMM_CONFIG */
+/*   /\* YC->all: manage the rest of structure -- permutations, etc. *\/ */
+/*   return(item) ;  */
+/* } */
+#endif /* BACKTRACK */
