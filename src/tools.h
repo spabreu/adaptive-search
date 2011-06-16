@@ -109,7 +109,6 @@ typedef struct elitePool
 } elitePool;
 #endif /* BACKTRACK */
 
-
 /*------------------*
  * Global variables *
  *------------------*/

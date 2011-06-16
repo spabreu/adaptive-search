@@ -29,7 +29,7 @@
 #endif
 
 #if defined ITER_COST
-#  define SIZE_MESSAGE 4 /* Use 3 and 4 for nb iter (splitted into two 32-bit integers) */
+#  define SIZE_MESSAGE 3 /* Use 3 for nb iter */
 #else
 #  define SIZE_MESSAGE 2
 #endif
@@ -70,18 +70,6 @@
 /*-------*
  * Types *
  *-------*/
-
-#if defined COMM_CONFIG
-typedef struct configuration
-{
-  unsigned int *configuration;	/* Array of pb_size int storing configuration */
-  int		cost;		/* cost of the configuration */
-  int		resets;		/* number of resets performed */
-  long long int iterations;	/* number of iterations performed */
-
-} configuration;
-#endif /* COMM_CONFIG */
-
 
 typedef struct tegami
 {
