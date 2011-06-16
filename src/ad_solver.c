@@ -129,7 +129,7 @@ Error_All_Marked()
 {
   int i;
 
-  printf("\niter: %lld - all variables are marked wrt base mark: %d\n",
+  printf("\niter: %d - all variables are marked wrt base mark: %d\n",
 	 ad.nb_iter, BASE_MARK);
   for (i = 0; i < ad.size; i++)
     printf("M(%d)=%d  ", i, mark[i]);
@@ -366,7 +366,7 @@ Select_Vars_To_Swap(void)
 
 #if 0
   if (new_cost >= ad.total_cost)
-    printf("   *** LOCAL MIN ***  iter: %lld  next cost:%d >= total cost:%d #candidates: %d\n", ad.nb_iter, new_cost, ad.total_cost, list_ij_nb);
+    printf("   *** LOCAL MIN ***  iter: %d  next cost:%d >= total cost:%d #candidates: %d\n", ad.nb_iter, new_cost, ad.total_cost, list_ij_nb);
 #endif
 
   if (new_cost >= ad.total_cost)
@@ -571,7 +571,7 @@ Ad_Solve(AdData *p_ad)
 	{
 	  best_of_best = best_cost;
 #if 0 //******************************
-	  printf("exec: %3d  iter: %10lld  BEST %d (#locmin:%d  resets:%d)\n",  ad.nb_restart, ad.nb_iter, best_of_best, ad.nb_local_min, ad.nb_reset);
+	  printf("exec: %3d  iter: %10d  BEST %d (#locmin:%d  resets:%d)\n",  ad.nb_restart, ad.nb_iter, best_of_best, ad.nb_local_min, ad.nb_reset);
 	  Display_Solution(&ad);
 
 #endif
@@ -644,11 +644,11 @@ Ad_Solve(AdData *p_ad)
 	  Select_Vars_To_Swap();
 	}
 
-      Emit_Log("----- iter no: %lld, cost: %d, nb marked: %d ---",
+      Emit_Log("----- iter no: %d, cost: %d, nb marked: %d ---",
 	       ad.nb_iter, ad.total_cost, nb_var_marked);
 
 #ifdef TRACE
-      printf("----- iter no: %lld, cost: %d, nb marked: %d --- swap: %d/%d  nb pairs: %d  new cost: %d\n", 
+      printf("----- iter no: %d, cost: %d, nb marked: %d --- swap: %d/%d  nb pairs: %d  new cost: %d\n", 
              ad.nb_iter, ad.total_cost, nb_var_marked,
              max_i, min_j, list_ij_nb, new_cost);
 #endif
@@ -810,7 +810,7 @@ Show_Debug_Info(void)
 {
   char buff[100];
 
-  printf("\n--- debug info --- iteration no: %lld  swap no: %d\n", ad.nb_iter, ad.nb_swap);
+  printf("\n--- debug info --- iteration no: %d  swap no: %d\n", ad.nb_iter, ad.nb_swap);
   Ad_Display(ad.sol, &ad, mark);
   if (!ad_no_displ_sol_fct)
     {

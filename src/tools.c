@@ -853,19 +853,7 @@ main(int argc, char *argv[])
 #endif /* USE_ALONE */
 
 
-#if (defined BACKTRACK) || (defined COMM_CONFIG)
-
-void split(long long int tooLong, unsigned int *high, unsigned int *low)
-{
-  *high = (int)(tooLong >> 32);
-  *low = (int)(tooLong & 0xFFFFFFFF);  
-}
-
-long long int concat(unsigned int high, unsigned int low)
-{
-  return ((long long int)high << 32 | low);
-}
-
+#if defined BACKTRACK
 void
 queue_configuration( backtrack_configuration * item )
 {
@@ -906,4 +894,4 @@ unqueue_configuration()
   /* YC->all: manage the rest of structure -- permutations, etc. */
   return(item) ; 
 }
-#endif /* BACKTRACK || COMM_CONFIG */
+#endif /* BACKTRACK */

@@ -100,21 +100,21 @@ main(int argc, char *argv[])
   double time_one0, time_one;
   double nb_same_var_by_iter, nb_same_var_by_iter_tot;
 
-  long long int	nb_iter_cum;
-  int		nb_local_min_cum;
-  int		nb_swap_cum;
-  int		nb_reset_cum;
-  double	nb_same_var_by_iter_cum;
+  int    nb_iter_cum;
+  int    nb_local_min_cum;
+  int    nb_swap_cum;
+  int    nb_reset_cum;
+  double nb_same_var_by_iter_cum;
 
 
   int    nb_restart_cum,           nb_restart_min,              nb_restart_max;
   double time_cum,                    time_min,                    time_max;
 
-  long long int	nb_iter_tot_cum,          nb_iter_tot_min,      nb_iter_tot_max;
-  int		nb_local_min_tot_cum,     nb_local_min_tot_min,	nb_local_min_tot_max;
-  int		nb_swap_tot_cum,          nb_swap_tot_min,      nb_swap_tot_max;
-  int		nb_reset_tot_cum,         nb_reset_tot_min,     nb_reset_tot_max;
-  double	nb_same_var_by_iter_tot_cum, nb_same_var_by_iter_tot_min, nb_same_var_by_iter_tot_max;
+  int    nb_iter_tot_cum,          nb_iter_tot_min,             nb_iter_tot_max;
+  int    nb_local_min_tot_cum,     nb_local_min_tot_min,   nb_local_min_tot_max;
+  int    nb_swap_tot_cum,          nb_swap_tot_min,             nb_swap_tot_max;
+  int    nb_reset_tot_cum,         nb_reset_tot_min,          nb_reset_tot_max;
+  double nb_same_var_by_iter_tot_cum, nb_same_var_by_iter_tot_min, nb_same_var_by_iter_tot_max;
 
   int    user_stat_cum,             user_stat_min,               user_stat_max;
   char buff[256], str[32];
@@ -258,7 +258,7 @@ main(int argc, char *argv[])
   if (p_ad->prob_select_loc_min >=0 && p_ad->prob_select_loc_min <= 100)
     PRINT0("%d %%\n", p_ad->prob_select_loc_min) ;
   else PRINT0("not used\n") ;
-  PRINT0("abort when %lld iterations are reached "
+  PRINT0("abort when %d iterations are reached "
 	 "and restart at most %d times\n",
 	 p_ad->restart_limit, p_ad->restart_max) ;
 
@@ -321,7 +321,7 @@ main(int argc, char *argv[])
 	  nb_same_var_by_iter = (double) p_ad->nb_same_var / p_ad->nb_iter;
 	  nb_same_var_by_iter_tot = (double) p_ad->nb_same_var_tot / p_ad->nb_iter_tot;
 
-	  PRINTF("%5d %8.2f %8lld %8d %8d %8d %8.1f %8lld %8d %8d %8d %8.1f", 
+	  PRINTF("%5d %8.2f %8d %8d %8d %8d %8.1f %8d %8d %8d %8d %8.1f", 
 		 p_ad->nb_restart, time_one, 
 		 p_ad->nb_iter, p_ad->nb_local_min, p_ad->nb_swap, 
 		 p_ad->nb_reset, nb_same_var_by_iter,
@@ -333,7 +333,7 @@ main(int argc, char *argv[])
 	}
       else
 	{
-	  PRINTF("in %.2f secs (%d restarts, %lld iters, %d loc min, %d swaps, %d resets)\n", 
+	  PRINTF("in %.2f secs (%d restarts, %d iters, %d loc min, %d swaps, %d resets)\n", 
 		 time_one, p_ad->nb_restart, p_ad->nb_iter_tot, p_ad->nb_local_min_tot, 
 		 p_ad->nb_swap_tot, p_ad->nb_reset_tot);
 	}
@@ -459,7 +459,7 @@ main(int argc, char *argv[])
 	{
 	case 0:			/* only last iter counters */
 	case 2:			/* last iter followed by restart if needed */
-	  PRINTF("|%4d | %5d%c| %8.2f | %8lld | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("|%4d | %5d%c| %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 i, p_ad->nb_restart, (p_ad->total_cost == 0) ? ' ' : 'N',
 		 time_one,
 		 p_ad->nb_iter, p_ad->nb_local_min, p_ad->nb_swap,
@@ -471,7 +471,7 @@ main(int argc, char *argv[])
 	  if (disp_mode == 2 && p_ad->nb_restart > 0) 
 	    {
 	      PRINTF("|     |       |          |"
-		     " %8lld | %8d | %8d | %8d | %8.1f |",
+		     " %8d | %8d | %8d | %8d | %8.1f |",
 		     p_ad->nb_iter_tot, p_ad->nb_local_min_tot,
 		     p_ad->nb_swap_tot,
 		     p_ad->nb_reset_tot, nb_same_var_by_iter_tot);
@@ -482,9 +482,9 @@ main(int argc, char *argv[])
 
 	  PRINTF("%s", buff);
 
-	  PRINTF("| avg | %5d | %8.2f | %8lld | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("| avg | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 nb_restart_cum / i, time_cum / i,
-		 nb_iter_cum / (long long int)i, nb_local_min_cum / i, nb_swap_cum / i,
+		 nb_iter_cum / i, nb_local_min_cum / i, nb_swap_cum / i,
 		 nb_reset_cum / i, nb_same_var_by_iter_cum / i);
 	  if (user_stat_fct)
 	    PRINTF(" %8.2f |", (double) user_stat_cum / i);
@@ -494,8 +494,8 @@ main(int argc, char *argv[])
 	  if (disp_mode == 2 && nb_restart_cum > 0) 
 	    {
 	      PRINTF("|     |       |          |"
-		     " %8lld | %8d | %8d | %8d | %8.1f |",
-		     nb_iter_tot_cum / (long long int)i, nb_local_min_tot_cum / i,
+		     " %8d | %8d | %8d | %8d | %8.1f |",
+		     nb_iter_tot_cum / i, nb_local_min_tot_cum / i,
 		     nb_swap_tot_cum / i,
 		     nb_reset_tot_cum / i, nb_same_var_by_iter_tot_cum / i);
 	      if (user_stat_fct)
@@ -505,7 +505,7 @@ main(int argc, char *argv[])
 	  break;
 
 	case 1:			/* only total (restart + last iter) counters */
-	  PRINTF("|%4d | %5d%c| %8.2f | %8lld | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("|%4d | %5d%c| %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 i, p_ad->nb_restart, (p_ad->total_cost == 0) ? ' ' : 'N',
 		 time_one,
 		 p_ad->nb_iter_tot, p_ad->nb_local_min_tot, p_ad->nb_swap_tot,
@@ -516,9 +516,9 @@ main(int argc, char *argv[])
 
 	  PRINTF("%s", buff);
 
-	  PRINTF("| avg | %5d | %8.2f | %8lld | %8d | %8d | %8d | %8.1f |",
+	  PRINTF("| avg | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 		 nb_restart_cum / i, time_cum / i,
-		 nb_iter_tot_cum / (long long int)i, nb_local_min_tot_cum / i,
+		 nb_iter_tot_cum / i, nb_local_min_tot_cum / i,
 		 nb_swap_tot_cum / i,
 		 nb_reset_tot_cum / i, nb_same_var_by_iter_tot_cum / i);
 	  if (user_stat_fct)
@@ -530,12 +530,12 @@ main(int argc, char *argv[])
       /* disp_mode equals 1 by default */
       /* Prepare what will be sent to 0, and/or printed by 0 */
       snprintf(mpi_data.results, RESULTS_CHAR_MSG_SIZE - 1,
-	       "|* %ld/(%d/%d) | %5d | %8.2f | %8lld | %8d | %8d | %8d | %8.1f |",
+	       "|* %ld/(%d/%d) | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 	       print_seed,
 	       my_num,
 	       mpi_size,
 	       nb_restart_cum / i, time_cum / i,
-	       nb_iter_tot_cum / (long long int)i, nb_local_min_tot_cum / i,
+	       nb_iter_tot_cum / i, nb_local_min_tot_cum / i,
 	       nb_swap_tot_cum / i,
 	       nb_reset_tot_cum / i, nb_same_var_by_iter_tot_cum / i);
       /* TODO: use if(user_stat_fct)? What is that? */
@@ -546,7 +546,7 @@ main(int argc, char *argv[])
     return 0;
 
   if( count > 1 ) { /* YC->DD: why this test has been removed? */
-    PRINTF("| min | %5d | %8.2f | %8lld | %8d | %8d | %8d | %8.1f |",
+    PRINTF("| min | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 	   nb_restart_min, time_min,
 	   nb_iter_tot_min, nb_local_min_tot_min, nb_swap_tot_min,
 	   nb_reset_tot_min, nb_same_var_by_iter_tot_min);
@@ -554,7 +554,7 @@ main(int argc, char *argv[])
       PRINTF(" %8d |", user_stat_min);
     PRINTF("\n");
 
-    PRINTF("| max | %5d | %8.2f | %8lld | %8d | %8d | %8d | %8.1f |",
+    PRINTF("| max | %5d | %8.2f | %8d | %8d | %8d | %8d | %8.1f |",
 	   nb_restart_max, time_max,
 	   nb_iter_tot_max, nb_local_min_tot_max, nb_swap_tot_max,
 	   nb_reset_tot_max, nb_same_var_by_iter_tot_max);

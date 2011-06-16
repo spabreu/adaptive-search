@@ -61,17 +61,17 @@ typedef struct
 #endif /* COMM_COST || ITER_COST */
 #if defined ITER_COST
   /* #iter of best cost sent */
-  long long int iter_of_best_cost_sent ;
-  long long int mixed_received_msg_iter ;
+  int iter_of_best_cost_sent ;
+  int mixed_received_msg_iter ;
   /* unused for the moment */
-  long long int iter_for_best_cost_received ;
+  int iter_for_best_cost_received ;
 #endif /* ITER_COST */
 #if defined MIN_ITER_BEFORE_RESTART
   unsigned int nbiter_since_restart ;
 #endif
 
 #if defined COMM_CONFIG
-  backtrack_configuration list_of_configurations ; /* To store points of backtrack */
+  configuration list_of_configurations ; /* To store points of backtrack */
 #endif
 
 } Ad_Solve_MPIData ;
