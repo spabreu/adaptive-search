@@ -887,7 +887,7 @@ void pushConfiguration(backtrack_configuration *item)
     {
       backtrack_configuration *run = gl_elitePool.config_list_begin;
 
-      // if we must insert item to the first place
+      /* if we must insert item to the first place */
       if (run->cost > item->cost)
 	{
 	  gl_elitePool.config_list_begin = item;
@@ -895,7 +895,7 @@ void pushConfiguration(backtrack_configuration *item)
 	  item->previous = NULL;
 	  run->previous = item;
 	}
-      // otherwise
+      /* otherwise */
       else
 	{
 	  while((run->next != NULL) && (run->next->cost < item->cost))

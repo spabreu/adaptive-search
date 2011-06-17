@@ -39,8 +39,8 @@ typedef enum {                      /* Add a protocol => update ad_solver.c! */
   LS_KILLALL,                       /* msg = [range ; proc finished] */
   SENDING_RESULTS,
   LS_COST,                          /* msg = [range ; cost] */
-  LS_NBMSGS,
-  SEED
+  SEED,
+  LS_NBMSGS
 } protocol_msg ;                    /* All kind of messages between processus */
 
 typedef struct

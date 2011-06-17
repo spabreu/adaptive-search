@@ -99,9 +99,9 @@ typedef struct backtrack_configuration
 typedef struct elitePool
 {
   /* Use config array as circular array */
-  //backtrack_configuration	config_array[SIZE_BACKTRACK];
-  //int				config_array_begin;
-  //int				config_array_end;
+  /* backtrack_configuration	config_array[SIZE_BACKTRACK]; */
+  /* int				config_array_begin; */
+  /* int				config_array_end; */
   backtrack_configuration	*config_list_begin;
   backtrack_configuration	*config_list_end;
   int				config_list_size;

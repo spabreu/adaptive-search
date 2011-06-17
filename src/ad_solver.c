@@ -175,7 +175,6 @@ Ad_Un_Mark(int i)
 static void
 Select_Var_High_Cost(void)
 {
-  //  printf("Select_Var_High_Cost\n");
   int i;
   int x, max;
 
@@ -230,7 +229,6 @@ Select_Var_High_Cost(void)
 static void
 Select_Var_Min_Conflict(void)
 {
-  //  printf("Select_Var_Min_Conflict\n");
   int j;
   int x;
 
@@ -414,8 +412,6 @@ Select_Vars_To_Swap(void)
 void
 Ad_Swap(int i, int j)
 {
-  //  printf("Ad_Swap\n");
-
   int x;
 
   ad.nb_swap++;
@@ -427,8 +423,6 @@ Ad_Swap(int i, int j)
 static void
 Do_Reset(int n)
 {
-  //  printf("Do_Reset\n");
-
 #if defined(DEBUG) && (DEBUG&1)
   if (ad.debug)
     printf(" * * * * * * RESET n=%d\n", n);
@@ -471,7 +465,7 @@ Do_Reset(int n)
       memset(mark, 0, ad.size * sizeof(unsigned));
       
       /* Mark variable x previously chosen ? */
-      //Mark(resetConfig->varVector[0], ad.freeze_swap);
+      /* Mark(resetConfig->varVector[0], ad.freeze_swap); */
 
       /* printf("Tabu = %d\n", resetConfig->varVector[0]); */
       printf("Number var = %d\n", resetConfig->varVector[1]);
@@ -526,7 +520,9 @@ Do_Reset(int n)
 #endif
   ad.total_cost = (cost < 0) ? Cost_Of_Solution(1) : cost;
 
+#if defined BACKTRACK
   printf("\ncost pop = %d\n*******\n*******\n", ad.total_cost);
+#endif
 }
 
 /*
@@ -554,8 +550,6 @@ Do_Reset(int n)
 int
 Ad_Solve(AdData *p_ad)
 {
-  //  printf("Ad_Solve\n");
-
   int nb_in_plateau;
 #if defined MPI
   Ad_Solve_MPIData mpi_data ;
