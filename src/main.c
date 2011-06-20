@@ -308,13 +308,9 @@ main(int argc, char *argv[])
     {
       Set_Initial(p_ad);
 
-      TPRINT0("TRACE 1\n");
-
       time_one0 = (double) User_Time();
       Solve(p_ad);
       time_one = ((double) User_Time() - time_one0) / 1000;
-
-      TPRINT0("TRACE 2\n");
 
       if (p_ad->exhaustive)
 	DPRINTF("exhaustive search\n") ;
@@ -575,9 +571,9 @@ main(int argc, char *argv[])
   }
 
 #if !( defined MPI )
-#if defined PRINT_COSTS
+# if defined PRINT_COSTS
   print_costs() ;
-#endif
+# endif
   /* Seq code is now ending */
   TDPRINTF(": processus ends now.\n") ;
 #else /* !( defined MPI) */
