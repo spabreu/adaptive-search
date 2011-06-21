@@ -433,6 +433,9 @@ Do_Reset(int n)
 #if defined(BACKTRACK)
   if (gl_elitePool.config_list_size == 0)
     {
+#if defined DBG_BCKTRCK
+	  printf("Empty elite pool\n");
+#endif
       cost = Reset(n, &ad);
       ad.nb_reset++;
     }
@@ -449,7 +452,7 @@ Do_Reset(int n)
       if (randomConfig < 80)
 	{
 #if defined DBG_BCKTRCK
-	  printf("Best config taken (list size = %d)\n", gl_elitePool.config_list_size);
+	  printf("Best config taken\n");
 #endif
 	  if (gl_elitePool.config_list_begin->varVector[1] == 1)
 	    {
@@ -465,24 +468,49 @@ Do_Reset(int n)
 	{
 	  if ((randomConfig >= 80) && (randomConfig < 90))
 	    {
+#if defined DBG_BCKTRCK
+	      printf("Config inside the elite pool taken (not necessarily the best one)\n");
+#endif
 	      int randomIndex = Random(gl_elitePool.config_list_size);
-
-	      backtrack_configuration *run = gl_elitePool.config_list_begin;
-	      int i;
-	      for (i = 0; i < randomIndex; i++)
-		{
-		  run = run->next;
-		}
 	      
-	      resetConfig = run;
-	      if (run->varVector[1] == 1)
+	      if (randomIndex == 0)
 		{
-		  insideStack = 1;
+#if defined DBG_BCKTRCK
+		  printf("Finally the best one...\n");
+#endif
+		  resetConfig = popConfiguration();
+		}
+	      else
+		{
+		  backtrack_configuration *run = gl_elitePool.config_list_begin;
+		  int i;
+		  for (i = 0; i < randomIndex; i++)
+		    {
+		      run = run->next;
+		    }
+#if defined DBG_BCKTRCK
+		  printf("We took config #%d in the pool\n", randomIndex + 1);
+#endif
+		  resetConfig = run;
+		 
+		  if (run->varVector[1] == 1)
+		    {
+#if defined DBG_BCKTRCK
+		      printf("And just one variable remains\n");
+#endif
+		      if (randomIndex != 9)
+			insideStack = 1;
+		      else
+			insideStack = 2;			
+		    }
 		}
 	    }
 	  /* 10% chance (if randomConfig > 90) to do a real reset */
 	  else
 	    {
+#if defined DBG_BCKTRCK
+	  printf("Real reset performed\n");
+#endif
 	      int i;
 	      backtrack_configuration *dummy;
 	      
@@ -546,9 +574,13 @@ Do_Reset(int n)
 	      if (insideStack)
 		{
 		  resetConfig->previous->next = resetConfig->next;
-		  resetConfig->next->previous = resetConfig->previous;
+		  if (insideStack != 2)
+		    {
+		      resetConfig->next->previous = resetConfig->previous;
+		      resetConfig->next = NULL;
+		    }
 		  resetConfig->previous = NULL;
-		  resetConfig->next = NULL;
+
 		  gl_elitePool.config_list_size--;
 		}
 	      free(resetConfig->configuration);
