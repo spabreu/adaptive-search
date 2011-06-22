@@ -81,16 +81,23 @@
 typedef struct backtrack_configuration
 {
   unsigned int				*configuration;	/* Array of pb_size int storing configuration */
-  unsigned int				varVector[SIZE_VARVECTOR+2];	/* Vector of variables to explore */
+  int					varVector[SIZE_VARVECTOR+2];	/* Vector of VARIABLES to explore */
+									/* varVector[0] = -1 */
+									/* varVector[1] = number of var */
+									/* varVector[k], with k > 1, = var index */
+
+									/* OR */
+
+									/* Vector of VALUES to explore */
 									/* varVector[0] = x choosen */
-									/* varVector[1] = number of x */
-									/* varVector[k], with k > 1, = other x */
+									/* varVector[1] = number of values */
+									/* varVector[k], with k > 1, = values index */
 
   int					cost;		/* cost of the configuration */
-  int					resets;		/* number of resets performed */  
+  int					resets;		/* number of performed resets */  
   int					local_mins;	/* number of local minimum found */
-  int					swaps;		/* number of swaps performed */ 
-  long long int				iterations;	/* number of iterations performed */
+  int					swaps;		/* number of performed swaps */ 
+  long long int				iterations;	/* number of performed iterations */
   struct backtrack_configuration	*previous;
   struct backtrack_configuration	*next;
 } backtrack_configuration ;
@@ -105,8 +112,11 @@ typedef struct elitePool
   backtrack_configuration	*config_list_begin;
   backtrack_configuration	*config_list_end;
   int				config_list_size;
-  int				configuration_size_in_bytes;
+  int				nb_backtrack;		/* total number of performed backtrack (not real reset) */
+  int				nb_variable_backtrack;	/* total number of performed backtrack where we start with another variable */
+  int				nb_value_backtrack;	/* total number of performed backtrack where we start with another value */
 } elitePool;
+
 #endif /* BACKTRACK */
 
 /*------------------*
@@ -115,6 +125,7 @@ typedef struct elitePool
 
 #if defined BACKTRACK
 elitePool gl_elitePool;
+elitePool gl_stockPool;
 #endif /* BACKTRACK */
 
 /*------------*
@@ -162,9 +173,17 @@ void split(long long int, unsigned int*, unsigned int*);
 /* To concat two 32-bit unsigned int into a 64-bit long long int */
 long long int concat(unsigned int, unsigned int);
 
+/* To obtain a struct backtrack_configuration from the stock pool */
+/* or from the elite pool if stock is empty */
+backtrack_configuration* getFreeConfig();
+
 /* Functions to push/pop into/from the elite pool */
-void pushConfiguration(backtrack_configuration*);
-backtrack_configuration* popConfiguration();
+void pushElite(backtrack_configuration*);
+backtrack_configuration* popElite();
+
+/* Functions to push/pop into/from the stock pool */
+void pushStock(backtrack_configuration*);
+backtrack_configuration* popStock();
 
 /* void */
 /* queue_configuration( backtrack_configuration * item ) */

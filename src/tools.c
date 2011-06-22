@@ -865,17 +865,37 @@ long long int concat(unsigned int high, unsigned int low)
   return ((long long int)high << 32 | low);
 }
 
-void pushConfiguration(backtrack_configuration *item)
+
+/* To obtain a struct backtrack_configuration from the stock pool */
+/* or from the elite pool if stock is empty */
+backtrack_configuration* getFreeConfig()
 {
-  /* delete the last element if pool size = max */
+  if (gl_stockPool.config_list_size != 0)
+    {
+      return popStock();
+    }
+  else /* i.e. if the elite pool is full, we take its worst element */
+    {
+      backtrack_configuration *item = gl_elitePool.config_list_end;
+      
+      if (item->previous != NULL) /* always true unless SIZE_BACKTRACK = 1*/
+	{
+	  item->previous->next = NULL;
+	}
+      gl_elitePool.config_list_end = item->previous;
+      item->previous = NULL;
+      gl_elitePool.config_list_size--;
+      return item;	
+    }
+}
+
+/* Push a configuration into the elite pool */
+void pushElite(backtrack_configuration *item)
+{
   if (gl_elitePool.config_list_size == SIZE_BACKTRACK)
     {
-      backtrack_configuration *ptr = gl_elitePool.config_list_end;
-      gl_elitePool.config_list_end = gl_elitePool.config_list_end->previous;
-      gl_elitePool.config_list_end->next = NULL;
-      gl_elitePool.config_list_size--;
-      free(ptr->configuration);
-      free(ptr);      
+      printf("Try to push into a full elite pool, %s:%d\n",__FILE__, __LINE__);
+      exit(1);
     }
 
   if (gl_elitePool.config_list_size == 0)
@@ -917,11 +937,13 @@ void pushConfiguration(backtrack_configuration *item)
   gl_elitePool.config_list_size++;
 }
 
-backtrack_configuration* popConfiguration()
+/* Pop the best configuration from the elite pool */
+backtrack_configuration* popElite()
 {
   if (gl_elitePool.config_list_size == 0)
     {
-      return NULL;
+      printf("Try to pop an empty elite pool, %s:%d\n",__FILE__, __LINE__);
+      exit(1);
     }
   else
     {
@@ -933,12 +955,55 @@ backtrack_configuration* popConfiguration()
       else
 	{
 	  gl_elitePool.config_list_begin = gl_elitePool.config_list_begin->next;
-	  gl_elitePool.config_list_begin->previous = NULL;
+	  if (gl_elitePool.config_list_begin != NULL)
+	    gl_elitePool.config_list_begin->previous = NULL;
 	  toPop->next = NULL;
 	}
       gl_elitePool.config_list_size--;
       return toPop;
     }  
+}
+
+
+/* Push a backtrack_configuration into the stock pool*/
+void pushStock(backtrack_configuration *item)
+{
+  if (gl_stockPool.config_list_size == SIZE_BACKTRACK)
+    {
+      printf("Try to push into a full stock pool, %s:%d\n",__FILE__, __LINE__);
+      exit(1);
+    }
+
+  item->next = gl_stockPool.config_list_begin;
+  item->previous = NULL;
+  gl_stockPool.config_list_begin = item;
+  if (item->next != NULL)
+    {
+      item->next->previous = item;
+    }
+  
+  gl_stockPool.config_list_size++;
+}
+
+/* Pop a backtrack_configuration from the stock pool */
+backtrack_configuration* popStock()
+{
+   if (gl_stockPool.config_list_size == 0)
+    {
+      printf("Try to pop an empty stock pool, %s:%d\n",__FILE__, __LINE__);
+      exit(1);
+    }
+   
+   backtrack_configuration *item = gl_stockPool.config_list_begin;
+   if (item->next != NULL)
+     {
+       item->next->previous = NULL;
+     }
+   gl_stockPool.config_list_begin = item->next;
+   item->next = NULL;
+
+   gl_stockPool.config_list_size--;
+   return item;
 }
 
 /* void */
