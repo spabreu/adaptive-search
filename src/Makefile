@@ -16,7 +16,13 @@ AR=ar
 #CFLAGS=-g -Wall -DDEBUG -DLOG_FILE
 #CFLAGS=-g -Wall -DDEBUG
 #CFLAGS=-fomit-frame-pointer -O3 -DLOG_FILE -Wall
+#CFLAGS=-g -fomit-frame-pointer -O3 -W -Wall -Wno-unused-parameter \
+	-DDEBUG=$(DEBUG) $(COMM) -DBACKTRACK
+#CFLAGS=-fomit-frame-pointer -O3 -W -Wall -Wno-unused-parameter \
+	-DDEBUG=$(DEBUG) $(COMM) -DBACKTRACK -DDBG_BCKTRCK
 CFLAGS=-fomit-frame-pointer -O3 -W -Wall -Wno-unused-parameter \
+	-DDEBUG=$(DEBUG) $(COMM) -DBACKTRACK
+#CFLAGS=-fomit-frame-pointer -O3 -W -Wall -Wno-unused-parameter \
 	-DDEBUG=$(DEBUG) $(COMM)
 
 # for profiling
@@ -33,7 +39,7 @@ OBJLIB = ad_solver.o tools.o main.o \
 
 LIBNAME=libad_solver.a
 
-EXECS=magic-square queens alpha all-interval partit langford perfect-square cap qap
+EXECS=magic-square queens alpha all-interval partit langford perfect-square costas qap
 
 %: %.c $(LIBNAME)
 	$(CC) -o $@ $(CFLAGS) $< $(LIBNAME) -lm

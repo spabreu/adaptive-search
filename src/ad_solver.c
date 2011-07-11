@@ -44,13 +44,17 @@
 #define CELL_COMM_ACTION_CMD  Do_Reset(200)
 #endif
 
-
 #include "cell-extern.h"
 
-
 #endif /* CELL_COMM */
-
 #endif	/* CELL */
+
+#if defined BACKTRACK
+#define PERCENT_BEST	50
+#define PERCENT_RANDOM	30
+/* Remember there must be some percentage left for standard reset */
+/* Thus, we have PERCENT_BEST + PERCENT_RANDOM < 100 */
+#endif
 
 /*-----------*
  * Constants *
@@ -445,12 +449,13 @@ Do_Reset(int n)
       int realReset = 0;
       int insideStack = 0;
       backtrack_configuration *resetConfig;
-      /* 80% chance to take the best configuration */
+
       int randomConfig = Random(100);
 #if defined DBG_BCKTRCK
       printf("Random config = %d\n", randomConfig);
 #endif
-      if (randomConfig < 80)
+      /* PERCENT_BEST % chance to take the best configuration */
+      if (randomConfig < PERCENT_BEST)
 	{
 #if defined DBG_BCKTRCK
 	  printf("Best config taken\n");
@@ -465,10 +470,10 @@ Do_Reset(int n)
 	    }
 	  gl_elitePool.nb_backtrack++;
 	}
-      /* 10% chance to take a random one with more than one element in varVector */
+      /* PERCENT_RANDOM % chance to take a random one with more than one element in varVector */
       else
 	{
-	  if ((randomConfig >= 80) && (randomConfig < 90))
+	  if ((randomConfig >= PERCENT_BEST) && (randomConfig < (PERCENT_BEST + PERCENT_RANDOM)))
 	    {
 #if defined DBG_BCKTRCK
 	      printf("Config inside the elite pool taken (not necessarily the best one)\n");
@@ -517,7 +522,7 @@ Do_Reset(int n)
 		}
 	      gl_elitePool.nb_backtrack++;
 	    }
-	  /* 10% chance (if randomConfig > 90) to do a real reset */
+	  /* (1 - (x+y))% chance to do a real reset */
 	  else
 	    {
 #if defined DBG_BCKTRCK
