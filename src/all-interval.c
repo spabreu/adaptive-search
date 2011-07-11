@@ -170,8 +170,8 @@ Cost_If_Swap(int current_cost, int i1, int i2)
     return size;
 #endif
 
-				/* we know i1 < i2 due to ad.exhaustive */
-				/* else uncomment this */
+  /* we know i1 < i2 due to ad.exhaustive */
+  /* else uncomment this */
 #if 0
   if (i1 > i2)
     {

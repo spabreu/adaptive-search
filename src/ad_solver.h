@@ -167,9 +167,9 @@ void Display_Solution(AdData *p_ad);			/* optional else basic display */
    * 0=nothing, 1=unmark reset (swapped) vars, 2=unmark all vars 
    */
 
-//#define UNMARK_AT_RESET  0
+#define UNMARK_AT_RESET  0
 //#define UNMARK_AT_RESET  1
-#define UNMARK_AT_RESET  2
+//#define UNMARK_AT_RESET  2
 
 
 #endif /* !AD_SOLVER_H */

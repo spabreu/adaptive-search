@@ -180,7 +180,7 @@ Solve(AdData *p_ad)
     }
 
   Ad_Solve(p_ad);
-  /* YC->DD: Normal qu'il n'y ait pas les free() suivants ?
+  /* YC->DD: Normal qu'il n'y ait pas les free() suivants ? 
   free( err_l ) ;
   free( err_c ) ;
   free( err_l_abs ) ;
@@ -463,7 +463,7 @@ Init_Parameters(AdData *p_ad)
     p_ad->freeze_loc_min = 1;
 
   if (p_ad->freeze_swap == -1)
-    p_ad->freeze_swap = 0;
+    p_ad->freeze_swap = 0; //0
 
   if (p_ad->reset_limit == -1)
     p_ad->reset_limit = square_length * 1.2;

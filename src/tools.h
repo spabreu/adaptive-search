@@ -70,6 +70,7 @@
 
 #if defined BACKTRACK
 #define SIZE_BACKTRACK 10
+#define SIZE_VARVECTOR	5
 #endif
 
 /*-------*
@@ -79,14 +80,43 @@
 #if defined BACKTRACK
 typedef struct backtrack_configuration
 {
-  unsigned int * solution ; /* Array of pb_size int storing configuration */
-  /* TODO: add a vector of permutations to be done,
-           an index to know which have been done (oven value) to avoid memory
-	     management of this array
-	   and... ?
-  */
+  unsigned int				*configuration;	/* Array of pb_size int storing configuration */
+  int					varVector[SIZE_VARVECTOR+2];	/* Vector of VARIABLES to explore */
+									/* varVector[0] = -1 */
+									/* varVector[1] = number of var */
+									/* varVector[k], with k > 1, = var index */
 
+									/* OR */
+
+									/* Vector of VALUES to explore */
+									/* varVector[0] = x choosen */
+									/* varVector[1] = number of values */
+									/* varVector[k], with k > 1, = values index */
+
+  int					cost;		/* cost of the configuration */
+  int					resets;		/* number of performed resets */  
+  int					local_mins;	/* number of local minimum found */
+  int					swaps;		/* number of performed swaps */ 
+  long long int				iterations;	/* number of performed iterations */
+  struct backtrack_configuration	*previous;
+  struct backtrack_configuration	*next;
 } backtrack_configuration ;
+
+
+typedef struct elitePool
+{
+  /* Use config array as circular array */
+  /* backtrack_configuration	config_array[SIZE_BACKTRACK]; */
+  /* int				config_array_begin; */
+  /* int				config_array_end; */
+  backtrack_configuration	*config_list_begin;
+  backtrack_configuration	*config_list_end;
+  int				config_list_size;
+  int				nb_backtrack;		/* total number of performed backtrack (not real reset) */
+  int				nb_variable_backtrack;	/* total number of performed backtrack where we start with another variable */
+  int				nb_value_backtrack;	/* total number of performed backtrack where we start with another value */
+} elitePool;
+
 #endif /* BACKTRACK */
 
 /*------------------*
@@ -94,11 +124,16 @@ typedef struct backtrack_configuration
  *------------------*/
 
 #if defined BACKTRACK
+<<<<<<< HEAD:src/tools.h
 /* Use backtrack array as circular array */
 backtrack_configuration Gbacktrack_array[SIZE_BACKTRACK] ;
 int Gbacktrack_array_begin ;
 int Gbacktrack_array_end ;
 int Gconfiguration_size_in_bytes ;
+=======
+elitePool gl_elitePool;
+elitePool gl_stockPool;
+>>>>>>> 7b66fa6bbfadb0ac4e22536614e5a574b3486515:src/tools.h
 #endif /* BACKTRACK */
 
 /*------------*
@@ -140,11 +175,28 @@ void Random_Permut_Repair(int *vec, int size, const int *actual_value, int base_
 int Random_Permut_Check(int *vec, int size, const int *actual_value, int base_value);
 
 #if defined BACKTRACK
-/* Functions to manage the configurations array in a circular way */
-void
-queue_configuration( backtrack_configuration * item ) ;
-backtrack_configuration * 
-unqueue_configuration() ;
+/* To split a 64-bit long long int into two 32-bit unsigned int */
+void split(long long int, unsigned int*, unsigned int*);
+
+/* To concat two 32-bit unsigned int into a 64-bit long long int */
+long long int concat(unsigned int, unsigned int);
+
+/* To obtain a struct backtrack_configuration from the stock pool */
+/* or from the elite pool if stock is empty */
+backtrack_configuration* getFreeConfig();
+
+/* Functions to push/pop into/from the elite pool */
+void pushElite(backtrack_configuration*);
+backtrack_configuration* popElite();
+
+/* Functions to push/pop into/from the stock pool */
+void pushStock(backtrack_configuration*);
+backtrack_configuration* popStock();
+
+/* void */
+/* queue_configuration( backtrack_configuration * item ) */
+/* backtrack_configuration * */
+/* unqueue_configuration() */
 #endif /* BACKTRACK */
 
 

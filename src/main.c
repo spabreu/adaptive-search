@@ -279,16 +279,38 @@ main(int argc, char *argv[])
 
 #if defined BACKTRACK
   /* Note: This has to be done after p_ad initialization! */
-  Gbacktrack_array_begin = 0 ;
-  Gbacktrack_array_end = 0 ;
-  Gconfiguration_size_in_bytes = p_ad->size_in_bytes ;
-  for( i=0 ; i<SIZE_BACKTRACK ; i++ )
-    Gbacktrack_array[i].solution = (unsigned int*)
-      malloc(Gconfiguration_size_in_bytes) ;
+  /* Gbacktrack_array_begin = 0 ; */
+  /* Gbacktrack_array_end = 0 ; */
+  /* Gconfiguration_size_in_bytes = p_ad->size_in_bytes ; */
+  /* for( i=0 ; i<SIZE_BACKTRACK ; i++ ) */
+  /*   Gbacktrack_array[i].configuration = (unsigned int*) */
+  /*     malloc(Gconfiguration_size_in_bytes) ; */
   /* YC->all: do the rest of initilization */
+
+  gl_elitePool.config_list_begin		= NULL;
+  gl_elitePool.config_list_end			= NULL;
+  gl_elitePool.config_list_size			= 0;
+  gl_elitePool.nb_backtrack			= 0;
+  gl_elitePool.nb_variable_backtrack		= 0;
+  gl_elitePool.nb_value_backtrack		= 0;
+
+  gl_stockPool.config_list_begin		= NULL;
+  gl_stockPool.config_list_end			= NULL;
+  gl_stockPool.config_list_size			= 0;
+
+  backtrack_configuration *item;
+  for (i = 0; i < SIZE_BACKTRACK; i++)
+    {
+      item			= malloc(sizeof(backtrack_configuration));
+      item->configuration	= malloc(p_ad->size_in_bytes);
+      pushStock(item);
+    }
+
 #endif
 
   TPRINT0("%d begins its resolution!\n", my_num) ;
+  TPRINT0("count = %d\n", count);
+
 
   if (count <= 0) /* Note: MPI => count=1 */
     {
@@ -330,6 +352,13 @@ main(int argc, char *argv[])
 		 time_one, p_ad->nb_restart, p_ad->nb_iter_tot, p_ad->nb_local_min_tot, 
 		 p_ad->nb_swap_tot, p_ad->nb_reset_tot);
 	}
+#if defined BACKTRACK
+      PRINTF("BACKTRACK STATS:\n");
+      PRINTF("Total number of performed backtracks: %d\n", gl_elitePool.nb_backtrack);
+      PRINTF("Total number of performed backtracks starting from another variable: %d\n", gl_elitePool.nb_variable_backtrack);
+      PRINTF("Total number of performed backtracks starting from another value: %d\n", gl_elitePool.nb_value_backtrack);
+#endif
+
       return 0 ;
     } /* (count <= 0) */
 
@@ -446,7 +475,7 @@ main(int argc, char *argv[])
 	nb_same_var_by_iter_tot_max = nb_same_var_by_iter_tot;
       if (user_stat_max < user_stat)
 	user_stat_max = user_stat;
-
+  
 #if !defined(MPI)
       switch(disp_mode)
 	{
@@ -556,10 +585,31 @@ main(int argc, char *argv[])
     PRINTF("\n");
   }
 
+#if defined BACKTRACK
+  PRINTF("BACKTRACK STATS:\n");
+  PRINTF("Total number of performed backtracks: %d\n", gl_elitePool.nb_backtrack);
+  PRINTF("Total number of performed backtracks starting from another variable: %d\n", gl_elitePool.nb_variable_backtrack);
+  PRINTF("Total number of performed backtracks starting from another value: %d\n", gl_elitePool.nb_value_backtrack);
+
+  /* flush pools */
+  while(gl_elitePool.config_list_size > 0)
+    {
+      item = popElite();
+      free(item->configuration);
+      free(item);
+    }
+  while(gl_stockPool.config_list_size > 0)
+    {
+      item = popStock();
+      free(item->configuration);
+      free(item);
+    }
+#endif /* BACKTRACK */
+
 #if !( defined MPI )
-#if defined PRINT_COSTS
+# if defined PRINT_COSTS
   print_costs() ;
-#endif
+# endif
   /* Seq code is now ending */
   TDPRINTF("Processus ends now.\n") ;
 #else /* !( defined MPI) */
@@ -572,6 +622,16 @@ main(int argc, char *argv[])
 void
 Set_Initial(AdData *p_ad)
 {
+#if defined BACKTRACK
+  /* flush the elite pool */
+  backtrack_configuration *dummy;
+  while (gl_elitePool.config_list_size > 0)
+    {
+      dummy = popElite();
+      pushStock(dummy);
+    }
+#endif
+
   int i;
   switch (read_initial)
     {

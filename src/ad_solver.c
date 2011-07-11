@@ -432,13 +432,291 @@ Do_Reset(int n)
     printf(" * * * * * * RESET n=%d\n", n);
 #endif
 
-  int cost = Reset(n, &ad);
+  int cost;
+
+#if defined(BACKTRACK)
+
+  if (gl_elitePool.config_list_size == 0)
+    {
+#if defined DBG_BCKTRCK
+      printf("Empty elite pool\n");
+#endif
+      cost = Reset(n, &ad);
+      ad.nb_reset++;
+    }
+  else
+    {
+      int realReset = 0;
+      int insideStack = 0;
+      backtrack_configuration *resetConfig;
+      /* 80% chance to take the best configuration */
+      int randomConfig = Random(100);
+#if defined DBG_BCKTRCK
+      printf("Random config = %d\n", randomConfig);
+#endif
+      if (randomConfig < 80)
+	{
+#if defined DBG_BCKTRCK
+	  printf("Best config taken\n");
+#endif
+	  if (gl_elitePool.config_list_begin->varVector[1] == 1)
+	    {
+	      resetConfig = popElite();
+	    }
+	  else
+	    {
+	      resetConfig = gl_elitePool.config_list_begin;
+	    }
+	  gl_elitePool.nb_backtrack++;
+	}
+      /* 10% chance to take a random one with more than one element in varVector */
+      else
+	{
+	  if ((randomConfig >= 80) && (randomConfig < 90))
+	    {
+#if defined DBG_BCKTRCK
+	      printf("Config inside the elite pool taken (not necessarily the best one)\n");
+#endif
+	      int randomIndex = Random(gl_elitePool.config_list_size);
+#if defined DBG_BCKTRCK
+	      printf("randomIndex = %d\n", randomIndex);
+#endif
+	      if (randomIndex == 0)
+		{
+#if defined DBG_BCKTRCK
+		  printf("Finally the best one...\n");
+#endif
+		  if (gl_elitePool.config_list_begin->varVector[1] == 1)
+		    {
+		      resetConfig = popElite();
+		    }
+		  else
+		    {
+		      resetConfig = gl_elitePool.config_list_begin;
+		    }
+		}
+	      else
+		{
+		  backtrack_configuration *run = gl_elitePool.config_list_begin;
+		  int i;
+		  for (i = 0; i < randomIndex; i++)
+		    {
+		      run = run->next;
+		    }
+#if defined DBG_BCKTRCK
+		  printf("We took config #%d in the pool\n", randomIndex + 1);
+#endif
+		  resetConfig = run;
+		 
+		  if (resetConfig->varVector[1] == 1)
+		    {
+#if defined DBG_BCKTRCK
+		      printf("And just one variable remains\n");
+#endif
+		      if (randomIndex != gl_elitePool.config_list_size - 1) /* resetConfig is NOT the last item of the pool */
+			insideStack = 1;
+		      else /* resetConfig IS the last item of the pool */
+			insideStack = 2;			
+		    }
+		}
+	      gl_elitePool.nb_backtrack++;
+	    }
+	  /* 10% chance (if randomConfig > 90) to do a real reset */
+	  else
+	    {
+#if defined DBG_BCKTRCK
+	      printf("Real reset performed\n");
+#endif
+	      backtrack_configuration *dummy;
+	      
+	      cost = Reset(n, &ad);
+	      ad.nb_reset++;
+	      realReset = 1;
+
+#if defined DBG_BCKTRCK
+	      printf("After real reset\n");
+#endif
+	      /* flush the elite pool */
+	      while (gl_elitePool.config_list_size > 0)
+		{
+		  dummy = popElite();
+		  pushStock(dummy);
+		}
+
+#if defined DBG_BCKTRCK
+	      printf("After the flush real reset\n");
+#endif
+	    }
+	}
+     
+      /* we don't have to do the following if we perform a "real reset" */
+      if (!realReset)
+	{
+	  /* Update statistics */
+	  ad.nb_reset_tot	+= ad.nb_reset + 1;
+	  ad.nb_local_min_tot	+= ad.nb_local_min;
+	  ad.nb_swap_tot	+= ad.nb_swap;
+	  ad.nb_iter_tot	+= ad.nb_iter;
+	  
+	  /* Backtrack */
+	  ad.nb_reset		= resetConfig->resets;
+	  ad.nb_local_min	= resetConfig->local_mins;
+	  ad.nb_swap		= resetConfig->swaps;
+	  ad.nb_iter		= resetConfig->iterations;
+	  memcpy(ad.sol, resetConfig->configuration, ad.size_in_bytes);
+	  
+	  /* UnMark all variables */
+	  memset(mark, 0, ad.size * sizeof(unsigned));
+	  
+#if defined DBG_BCKTRCK
+	  printf("Number var = %d\n", resetConfig->varVector[1]);
+#endif
+	  if (resetConfig->varVector[0] == -1)
+	    {
+#if defined DBG_BCKTRCK
+	      printf("Var Pop!\n");
+#endif
+	      gl_elitePool.nb_variable_backtrack++;
+	      
+	      int random_x	= Random(resetConfig->varVector[1]);
+	      /* printf("Random = %d\n", random_x); */
+	      int swap_x	= resetConfig->varVector[random_x + 2];
+	      int i;
+#if defined DBG_BCKTRCK
+	      for (i = 0; i < resetConfig->varVector[1]; i++)
+		{
+		  if (i ==  random_x)
+		    printf(" *%d* ", resetConfig->varVector[i + 2]);
+		  else
+		    printf("%4d", resetConfig->varVector[i + 2]);
+		}
+	      printf("\n");
+#endif
+	      /* Structure pointed by resetConfig has been dynamically allocated */
+	      /* We need to free it */
+	      if (resetConfig->varVector[1] == 1)
+		{
+		  if (insideStack != 0) /* we take resetConfig inside the pool, not the head */
+		    {
+		      resetConfig->previous->next = resetConfig->next;
+		      if (insideStack == 1) /* resetConfig is not the tail of the pool - so somewhere in the middle */
+			{
+			  resetConfig->next->previous = resetConfig->previous;
+			  resetConfig->next = NULL;
+			}
+		      if (insideStack == 2) /* resetConfig is the tail of the pool */
+			{
+			  gl_elitePool.config_list_end = resetConfig->previous;
+			}
+		      resetConfig->previous = NULL;
+		      
+		      gl_elitePool.config_list_size--;
+		    }
+		  pushStock(resetConfig);
+		}
+	      else
+		{
+		  for (i = random_x + 2; i < resetConfig->varVector[1] + 1; i++)
+		    {
+		      resetConfig->varVector[i] = resetConfig->varVector[i+1];
+		    }
+		  resetConfig->varVector[1]--;
+		}
+	      
+	      Select_Var_Min_Conflict();
+	      Mark(swap_x, ad.freeze_swap);
+	      Mark(min_j, ad.freeze_swap);
+	      Ad_Swap(swap_x, min_j);
+	      Executed_Swap(swap_x, min_j);
+
+#if defined DBG_BCKTRCK
+	      printf("Config popped, swapping var %d and %d:\n", swap_x, min_j);
+#endif
+	    }
+	  else
+	    {
+#if defined DBG_BCKTRCK
+	      printf("Val Pop!\n");
+#endif
+	      gl_elitePool.nb_value_backtrack++;
+	      
+	      int random_y	= Random(resetConfig->varVector[1]);
+	      /* printf("Random = %d\n", random_x); */
+	      int swap_x	= resetConfig->varVector[0];
+	      int swap_y	= resetConfig->varVector[random_y + 2];
+	      int i;
+#if defined DBG_BCKTRCK
+	      for (i = 0; i < -resetConfig->varVector[1]; i++)
+		{
+		  if (i ==  random_y)
+		    printf(" *%d* ", resetConfig->varVector[i + 2]);
+		  else
+		    printf("%4d", resetConfig->varVector[i + 2]);
+		}
+	      printf("\n");
+#endif
+	      /* Structure pointed by resetConfig has been dynamically allocated */
+	      /* We need to free it */
+	      if (resetConfig->varVector[1] == 1)
+		{
+		  if (insideStack != 0) /* we take resetConfig inside the pool, not the head */
+		    {
+		      resetConfig->previous->next = resetConfig->next;
+		      if (insideStack == 1) /* resetConfig is not the tail of the pool - so somewhere in the middle */
+			{
+			  resetConfig->next->previous = resetConfig->previous;
+			  resetConfig->next = NULL;
+			}
+		      if (insideStack == 2) /* resetConfig is the tail of the pool */
+			{
+			  gl_elitePool.config_list_end = resetConfig->previous;
+			}
+		      resetConfig->previous = NULL;
+		      
+		      gl_elitePool.config_list_size--;
+		    }
+		  pushStock(resetConfig);
+		}
+	      else
+		{
+		  for (i = random_y + 2; i < resetConfig->varVector[1] + 1; i++)
+		    {
+		      resetConfig->varVector[i] = resetConfig->varVector[i+1];
+		    }
+		  resetConfig->varVector[1]--;
+		}
+	      
+	      Mark(swap_x, ad.freeze_swap);
+	      Mark(swap_y, ad.freeze_swap);
+	      Ad_Swap(swap_x, swap_y);
+	      Executed_Swap(swap_x, swap_y);
+
+#if defined DBG_BCKTRCK
+	      printf("Config popped, swapping values %d and %d:\n", swap_x, swap_y);
+#endif
+	    }
+
+	  /* The new cost will be compute by the last line of this function */
+	  cost = -1;
+	  
+#if defined DBG_BCKTRCK
+	  Display_Solution(&ad);
+#endif
+	}
+    }
+#else
+  cost = Reset(n, &ad);
+  ad.nb_reset++;
+#endif /* BACKTRACK */
 
 #if UNMARK_AT_RESET == 2
   memset(mark, 0, ad.size * sizeof(unsigned));
 #endif
-  ad.nb_reset++;
   ad.total_cost = (cost < 0) ? Cost_Of_Solution(1) : cost;
+
+#if defined (BACKTRACK) && (DBG_BCKTRCK)
+  printf("\ncost pop = %d\n*******\n*******\n", ad.total_cost);
+#endif
 }
 
 /*
@@ -446,13 +724,13 @@ Do_Reset(int n)
  *
  */
 #ifdef LOG_FILE
-#  define Emit_Log(...)					\
-  do if (f_log)						\
-    {							\
-      fprintf(f_log, __VA_ARGS__);			\
-      fputc('\n', f_log);				\
-      fflush(f_log);					\
-  } while(0)
+#  define Emit_Log(...)				\
+  do if (f_log)					\
+       {					\
+	 fprintf(f_log, __VA_ARGS__);		\
+	 fputc('\n', f_log);			\
+	 fflush(f_log);				\
+       } while(0)
 #else
 #  define Emit_Log(...)
 #endif
@@ -656,7 +934,97 @@ Ad_Solve(AdData *p_ad)
 	  Select_Vars_To_Swap();
 	}
 
-      Emit_Log("----- iter no: %d, cost: %d, nb marked: %d ---",
+#if defined(BACKTRACK)
+      int i;
+
+      /* we push VARIABLES */
+      if ((list_i_nb > 1) &&
+	  ((gl_elitePool.config_list_size < SIZE_BACKTRACK) || (ad.total_cost < gl_elitePool.config_list_end->cost)))
+	{      
+	  backtrack_configuration *toInsert	= getFreeConfig();
+	  memcpy(toInsert->configuration, ad.sol, ad.size_in_bytes);
+
+	  toInsert->varVector[0]		= -1;
+	  toInsert->varVector[1]		= 0;
+
+	  
+#if defined DBG_BCKTRCK
+	  printf("Variables pushed: ");  
+#endif
+	  for (i = 2; i < list_i_nb + 2 && i < SIZE_VARVECTOR + 2; i++)
+	    {
+	      if (list_i[i-2] != max_i) /* we take all variables but max_i */
+		{
+		  toInsert->varVector[i] = list_i[i-2];
+#if defined DBG_BCKTRCK
+		  printf("%4d", toInsert->varVector[i]);
+#endif
+		  toInsert->varVector[1]++;
+		}
+	    }
+
+	  toInsert->cost			= ad.total_cost;
+	  toInsert->resets			= ad.nb_reset;
+	  toInsert->local_mins			= ad.nb_local_min;
+	  toInsert->swaps			= ad.nb_swap;
+	  toInsert->iterations			= ad.nb_iter;
+	  toInsert->previous			= NULL;
+	  toInsert->next			= NULL;
+
+#if defined DBG_BCKTRCK
+	  printf("\nConfig pushed (var):\n");
+	  Display_Solution(&ad);
+	  printf("\ncost push = %d\n*******\n*******\n", ad.total_cost);
+#endif
+
+	  pushElite(toInsert);
+	}
+
+      /* We push VALUES */
+      if ((list_j_nb > 1) &&
+	  ((gl_elitePool.config_list_size < SIZE_BACKTRACK) || (ad.total_cost < gl_elitePool.config_list_end->cost)))
+	{      
+	  backtrack_configuration *toInsert	= getFreeConfig();
+	  memcpy(toInsert->configuration, ad.sol, ad.size_in_bytes);
+
+	  toInsert->varVector[0]		= max_i;
+	  toInsert->varVector[1]		= 0;
+
+	  
+#if defined DBG_BCKTRCK
+	  printf("Values pushed: ");  
+#endif
+	  for (i = 2; i < list_j_nb + 2 && i < SIZE_VARVECTOR + 2; i++)
+	    {
+	      if (list_j[i-2] != min_j) /* we take all values but min_j */
+		{
+		  toInsert->varVector[i] = list_j[i-2];
+#if defined DBG_BCKTRCK
+		  printf("%4d", toInsert->varVector[i]);
+#endif
+		  toInsert->varVector[1]++;
+		}
+	    }
+
+	  toInsert->cost			= ad.total_cost;
+	  toInsert->resets			= ad.nb_reset;
+	  toInsert->local_mins			= ad.nb_local_min;
+	  toInsert->swaps			= ad.nb_swap;
+	  toInsert->iterations			= ad.nb_iter;
+	  toInsert->previous			= NULL;
+	  toInsert->next			= NULL;
+
+#if defined DBG_BCKTRCK
+	  printf("\nConfig pushed (val):\n");
+	  Display_Solution(&ad);
+	  printf("\ncost push = %d\n*******\n*******\n", ad.total_cost);
+#endif
+
+	  pushElite(toInsert);
+	}
+#endif /* BACKTRACK */
+
+      Emit_Log("----- iter no: %lld, cost: %d, nb marked: %d ---",
 	       ad.nb_iter, ad.total_cost, nb_var_marked);
 
 #ifdef TRACE
