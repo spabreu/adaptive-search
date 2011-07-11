@@ -295,6 +295,10 @@ Select_Var_Min_Conflict(void)
 	  return;
 #else
 	  ad.nb_iter++;
+#if defined PRINT_COSTS
+	  card_vec_costs++ ;
+	  vec_costs[card_vec_costs] = ad.total_cost ;
+#endif
 	  x = Random(list_i_nb);
 	  max_i = list_i[x];
 	  goto a;
@@ -741,6 +745,9 @@ Do_Reset(int n)
  *
  *  General solve function.
  *  returns the final total_cost (0 on success)
+
+ *  Note: Don't use p_ad, but ad. p_ad is never up-to-date except before
+ *        returning!
  */
 int
 Ad_Solve(AdData *p_ad)
@@ -748,10 +755,16 @@ Ad_Solve(AdData *p_ad)
   int nb_in_plateau;
 #if defined MPI
   Ad_Solve_MPIData mpi_data ;
-  Ad_Solve_init_MPI_data( & mpi_data ) ;
 #endif
 
   ad = *p_ad;	   /* does this help gcc optim (put some fields in regs) ? */
+
+#if defined MPI
+  mpi_data.p_ad = &ad ;
+  /* mpi_data.p_ad->ad_solve_mpi_data_ptr = & mpi_data ; */
+  Ad_Solve_init_MPI_data( & mpi_data ) ;
+#endif
+
 
   ad_sol = ad.sol; /* copy of p_ad->sol and p_ad->reinit_after_if_swap (used by no_cost_swap) */
   ad_reinit_after_if_swap = p_ad->reinit_after_if_swap;
@@ -824,6 +837,7 @@ Ad_Solve(AdData *p_ad)
   if (!ad.do_not_init)
     {
     restart:
+      TDPRINTF("%d restarting!\n", my_num) ;
       ad.nb_iter_tot += ad.nb_iter; 
       ad.nb_swap_tot += ad.nb_swap; 
       ad.nb_same_var_tot += ad.nb_same_var;
@@ -861,14 +875,12 @@ Ad_Solve(AdData *p_ad)
 	}
 
       ad.nb_iter++;
-
 #if defined PRINT_COSTS
       card_vec_costs++ ;
       vec_costs[card_vec_costs] = ad.total_cost ;
 #endif
-
 #if defined MPI
-      if( Ad_Solve_manage_MPI_communications( & mpi_data, & ad ) == 10 )
+      if( Ad_Solve_manage_MPI_communications( & mpi_data ) == 10 )
 	goto restart ;
 #endif /* MPI */
 

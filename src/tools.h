@@ -45,7 +45,7 @@
 #  define DPRINT0(...) DPRINTF(__VA_ARGS__)
 #endif
 #if !defined(TPRINT0)
-#  define TPRINT0(...) do { printf("%ld:",Real_Time()) ; printf(__VA_ARGS__); } while(0)
+#  define TPRINT0(...) do { printf("%ld: ",Real_Time()) ; printf(__VA_ARGS__); } while(0)
 #endif
 
 #if !defined(PRINTF)
@@ -53,11 +53,11 @@
 #endif
 
 #if !defined(TPRINTF)
-#  define TPRINTF(...) do { printf("%ld:",Real_Time()) ; printf (__VA_ARGS__) ; } while(0)
+#  define TPRINTF(...) do { printf("%ld: ",Real_Time()) ; printf (__VA_ARGS__) ; } while(0)
 #endif
 
 #if !defined(TDPRINTF)
-#  define TDPRINTF(...) do { DPRINTF("%ld:",Real_Time()) ; DPRINTF(__VA_ARGS__) ; } while(0)
+#  define TDPRINTF(...) do { DPRINTF("%ld: ",Real_Time()) ; DPRINTF(__VA_ARGS__) ; } while(0)
 #endif
 
 /*

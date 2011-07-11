@@ -10,6 +10,8 @@
 #define AS_AD_SOLVER_H
 
 #include "tools.h"
+#include "main_MPI.h"         /* for Main_MPIData */
+//#include "ad_solver_MPI.h"         /* for Ad_Solve_MPIData */
 
 #ifdef CELL
 #include <malloc.h>
@@ -27,7 +29,7 @@
  * Types *
  *-------*/
 
-typedef struct
+struct AdData
 {
 				/* --- input: basic data --- */
 
@@ -85,9 +87,12 @@ typedef struct
   int data32[4];		/* some 32 bits  */
   long long data64[2];		/* some 64 bits  */
 
-} AdData;
+#if defined MPI
+  Main_MPIData * main_mpi_data_ptr ; /* to access some info from ad_solver */
+  /*  Ad_Solve_MPIData * ad_solve_mpi_data_ptr ; */
+#endif
 
-#define RESULTS_CHAR_MSG_SIZE 256 /* with \n */
+} ;
 
 /*------------------*
  * Global variables *

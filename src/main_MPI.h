@@ -16,17 +16,22 @@
 #include <time.h>                         /* time() */
 #include <limits.h>                       /* To initiate first random seed */
 
-#include "ad_solver.h"                    /* For macros and global vars */
+//#include "ad_solver.h"                    /* For macros and global vars */
 
 /*-----------*
  * Constants *
  *-----------*/
 
+#define RESULTS_CHAR_MSG_SIZE 256 /* with \n */
+
 /*-------*
  * Types *
  *-------*/
 
-typedef struct
+typedef struct Main_MPIData Main_MPIData ;
+typedef struct AdData AdData ;
+
+struct Main_MPIData
 {
   char results[RESULTS_CHAR_MSG_SIZE] ;       /* To communicate performances */
 
@@ -36,17 +41,24 @@ typedef struct
   
   AdData * p_ad ;
   
-  long int * print_seed_ptr ;
+  long int * print_seed_ptr ;  /* value to print to redo this scenario */
 
   time_t tv_sec ;
 
   int * count_ptr ;
 
+  int size_message ; /* message = (range + config + stats + etc) */ 
+
+#if defined COMM_CONFIG
+  /* To store messages, reserve a big block of memory here */
+  unsigned int * block_of_messages ;
+#endif
+
 #if defined PRINT_COSTS
   int * nb_digits_nbprocs_ptr ;
 #endif
 
-} Main_MPIData ;
+} ;
 
 /*------------------*
  * Global variables *
@@ -58,6 +70,11 @@ typedef struct
 
 void
 AS_MPI_initialization( Main_MPIData * mpi_data_ptr ) ;
+
+/* Because we need to initialize some memory whose amount is known
+   only once p_ad si fully populated, thus at the end of initialization */
+void
+AS_MPI_initialization_epilogue( Main_MPIData * mpi_data_ptr ) ;
 
 void
 AS_MPI_completion( Main_MPIData * mpi_data_ptr ) ;

@@ -28,10 +28,14 @@
 #  define DEBUG_QUEUE
 #endif
 
+/* See ad_solver_MPI.h for protocol_msg */
 #if defined ITER_COST
-#  define SIZE_MESSAGE 3 /* Use 3 for nb iter */
+#  define SIZE_MESSAGE 3  /* range | best/cost | iter */
 #else
-#  define SIZE_MESSAGE 2
+#  define SIZE_MESSAGE 2  /* range | best/cost/iter */
+#endif
+#if defined COMM_CONFIG
+#undef SIZE_MESSAGE      /* Help to track mandatory changes */
 #endif
 
 #define QUEUE_NAME_MAX_LENGTH 20
@@ -50,21 +54,23 @@
 #  define DPRINT0(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
 #  define PRINTF(...)  do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
 #  define DPRINTF(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
-#  define TPRINTF(...) do { if( my_num == 0 ) { printf("%ld:",Real_Time()) ; printf (__VA_ARGS__) ; } } while(0)
+#  define TPRINTF(...) do { if( my_num == 0 ) { printf("%ld: ",Real_Time()) ; printf (__VA_ARGS__) ; } } while(0)
 #endif
 
 #if defined(DEBUG) && !defined(DISPLAY_0)
 #  define DPRINT0(...) do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
+#  define DPRINTF(...) do { printf (__VA_ARGS__) ; } while(0)
 #else
 #  define DPRINT0(...) do { ((void) 0) ;} while(0)
+#  define DPRINTF(...) do { ((void) 0) ;} while(0)
 #endif
 
 #define PRINT0(...)  do { if( my_num == 0 ) printf(__VA_ARGS__); } while(0)
-#define TPRINT0(...) do { if( my_num == 0 ) { printf("%ld:",Real_Time()) ; printf(__VA_ARGS__); } } while(0)
+#define TPRINT0(...) do { if( my_num == 0 ) { printf("%ld: ",Real_Time()) ; printf(__VA_ARGS__); } } while(0)
 
 #if !defined(DISPLAY_0)
 #  define PRINTF(...)  do { printf(__VA_ARGS__); } while(0)
-#  define TPRINTF(...) do { printf("%ld:",Real_Time()) ; printf(__VA_ARGS__); } while(0)
+#  define TPRINTF(...) do { printf("%ld: ",Real_Time()) ; printf(__VA_ARGS__); } while(0)
 #endif
 
 /*-------*
@@ -78,11 +84,18 @@ typedef struct tegami
   int size ;
   int nb_max_msgs_used ;
 #endif
+
 #if defined COMM_CONFIG
-  configuration configuration ;
+  unsigned int * message ; 
+  /* | range | best/config | cost | iter | swap | restart */
+#else
+  unsigned int message[SIZE_MESSAGE] ;
+  /* range | best  if KILLALL */
+  /* range | cost  if COST */
+  /* range | iter  if ITER */
+  /* range | cost | iter if ITER_COST */
 #endif
 
-  unsigned int message[SIZE_MESSAGE] ;
   MPI_Status status ;                /* Status of communication */
   MPI_Request handle ;               /* Handle on communication */
 
