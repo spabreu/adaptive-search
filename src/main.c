@@ -20,9 +20,9 @@
 #include <string.h>                       /* strdup() */
 #endif
 
-#include "ad_solver.h"
-#include "ad_solver_MPI.h"
 #include "main_MPI.h"
+#include "ad_solver_MPI.h"
+#include "ad_solver.h"
 #include "tools.h"                         /* PRINT, DPRINT, TPRINT, TDPRINT */
 
 /*-----------*
@@ -63,6 +63,8 @@ static void Set_Initial(AdData *p_ad);
 static void Verify_Sol(AdData *p_ad);
 
 static void Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad);
+
+static void PrintAllCompilationOptions() ; /* MPI or not */
 
 #define Div_Round_Up(x, y)   (((x) + (y) - 1) / (y))
 
@@ -145,9 +147,16 @@ main(int argc, char *argv[])
   mpi_data.param_c_ptr = &param_c ;
   mpi_data.last_value_ptr = &last_value ;
   mpi_data.p_ad = p_ad ;
+  mpi_data.p_ad->main_mpi_data_ptr = &mpi_data ;
   mpi_data.print_seed_ptr = &print_seed ;
   mpi_data.tv_sec = tv.tv_sec ;
   mpi_data.count_ptr = &count ;
+
+#if defined STATS
+  Gmpi_stats.nb_sent_messages = 0 ;
+  Gmpi_stats.nb_sent_mymessages = 0 ;
+#endif
+
 #if defined PRINT_COSTS
   mpi_data.nb_digits_nbprocs_ptr = &nb_digits_nbprocs ;
 #endif
@@ -166,7 +175,7 @@ main(int argc, char *argv[])
   PRINT0("\n") ;
 #if defined PRINT_COSTS
   nb_digits_nbprocs = 0 ;
-#endif
+#endif /* PRINT_COSTS */
   if (p_ad->seed < 0) {
     srandom((unsigned int)tv.tv_sec);
     /* INT_MAX / 6 (= 357.913.941) is a reasonable value to start with... 
@@ -176,7 +185,7 @@ main(int argc, char *argv[])
     p_ad->seed = randChaos(INT_MAX, &last_value, &param_a, &param_c);
   }
   print_seed = p_ad->seed;
-#endif /* MPI */
+#endif /**************************** MPI */
 
 #if defined PRINT_COSTS
   if( filename_pattern_print_cost==NULL ) {
@@ -243,6 +252,10 @@ main(int argc, char *argv[])
     }
   }
 
+#if defined MPI
+  AS_MPI_initialization_epilogue( &mpi_data ) ;
+#endif
+
   /********** Print configuration information + specific initialization *****/  
   PRINT0("current random seed used: %u (seed_0 %u) \n",
 	 (unsigned int)p_ad->seed, (unsigned int)print_seed) ;
@@ -262,26 +275,7 @@ main(int argc, char *argv[])
 	 "and restart at most %d times\n",
 	 p_ad->restart_limit, p_ad->restart_max) ;
 
-  PRINT0("Options:\n") ;
-  PRINT0("- Backtrack when reset: ") ;
-#if defined BACKTRACK
-  PRINT0("ON\n") ;
-#else
-  PRINT0("OFF\n") ;
-#endif
-
-#if defined MPI
-  PRINT0("Perform communications every %d iterations (default %d)\n",
-	 count_to_communication, CBLOCK_DEFAULT ) ;
-#if (defined COMM_COST)||(defined ITER_COST)
-  PRINT0("Prob communication = %d\n", proba_communication) ;
-#endif
-#if defined MPI_BEGIN_BARRIER
-  PRINT0("===========================================\n\n") ;
-  PRINT0("MPI Barrier called to synchronize processus before solve()\n");
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif /* MPI_BEGIN_BARRIER */
-#endif /* MPI */
+  PrintAllCompilationOptions() ;
 
 #if defined BACKTRACK
   /* Note: This has to be done after p_ad initialization! */
@@ -293,7 +287,6 @@ main(int argc, char *argv[])
       malloc(Gconfiguration_size_in_bytes) ;
   /* YC->all: do the rest of initilization */
 #endif
-
 
   TPRINT0("%d begins its resolution!\n", my_num) ;
 
@@ -568,7 +561,7 @@ main(int argc, char *argv[])
   print_costs() ;
 #endif
   /* Seq code is now ending */
-  TDPRINTF(": processus ends now.\n") ;
+  TDPRINTF("Processus ends now.\n") ;
 #else /* !( defined MPI) */
   AS_MPI_completion( &mpi_data ) ;
 #endif /* MPI */
@@ -704,7 +697,7 @@ Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad)
 #endif
 #if defined MPI
   count_to_communication = CBLOCK_DEFAULT ;
-#if (defined COMM_COST)||(defined ITER_COST)
+#if (defined COMM_COST)||(defined ITER_COST)||(defined COMM_CONFIG)
   proba_communication = 0 ;
 #endif
 #endif /* MPI */
@@ -862,7 +855,7 @@ Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad)
             case 'I':
               read_initial = 3;
               continue;
-#if (defined COMM_COST) || (defined ITER_COST)
+#if (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG)
 	    case 'z':
 	      if (++i >= argc)
 		{
@@ -966,4 +959,75 @@ Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad)
       if (--l >= 0 && p_ad->param_file[l] == '\n')
 	p_ad->param_file[l] = '\0';
     }
+}
+
+void
+PrintAllCompilationOptions()
+{ 
+#if defined MPI
+  PRINT0("Perform communications every %d iterations (default %d)\n",
+	 count_to_communication, CBLOCK_DEFAULT ) ;
+#if (defined COMM_COST)||(defined ITER_COST)||(defined COMM_CONFIG)
+  PRINT0("Prob communication = %d\n", proba_communication) ;
+#endif
+#endif /* MPI */
+
+  PRINT0("Compilation options:\n") ;
+  PRINT0("- Backtrack when reset: ") ;
+#if defined BACKTRACK
+  PRINT0("ON\n") ;
+#else
+  PRINT0("OFF\n") ;
+#endif
+
+#if defined MPI
+  PRINT0("- MPI (So forced count to 1 (-b 1)!\n") ;
+#if defined DEBUG_MPI_ENDING
+  PRINT0("- DEBUG_MPI_ENDING\n") ;
+#endif
+#if defined LOG_FILE
+  PRINT0("- LOG_FILE\n") ;
+#endif
+#if defined NO_SCREEN_OUTPUT
+  PRINT0("- NO_SCREEN_OUTPUT\n") ;
+#endif
+#if defined DISPLAY_0
+  PRINT0("- DISPLAY_0\n") ;
+#endif
+#if defined DISPLAY_ALL
+  PRINT0("- DISPLAY_ALL\n") ;
+#endif
+#if defined DEBUG
+  PRINT0("- DEBUG\n") ;
+#endif
+#if defined DEBUG_QUEUE
+  PRINT0("- DEBUG_QUEUE\n") ;
+#endif
+#if defined DEBUG_PRINT_QUEUE
+  PRINT0("- DEBUG_PRINT_QUEUE\n") ;
+#endif
+#if defined MPI_ABORT
+  PRINT0("- MPI_ABORT\n") ;
+#endif
+#if defined MPI_BEGIN_BARRIER
+  PRINT0("- MPI_BEGIN_BARRIER\n") ;
+#endif
+  /* Heuristic for communications */
+#if defined COMM_COST
+  PRINT0("- With COMM_COST\n") ;
+#elif defined ITER_COST
+  PRINT0("- With ITER_COST\n") ;
+#elif defined COMM_CONFIG
+  PRINT0("- With COMM_CONFIG\n") ;
+#else
+  PRINT0("- Without comm exept for terminaison\n") ;
+#endif
+#endif /* MPI */
+
+#if defined MPI_BEGIN_BARRIER
+  PRINT0("===========================================\n\n") ;
+  PRINT0("MPI Barrier called to synchronize processus before solve()\n");
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif /* MPI_BEGIN_BARRIER */
+
 }

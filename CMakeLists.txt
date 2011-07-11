@@ -72,7 +72,10 @@ IF (NOT AS_USE_SEQ)
    ENDIF (NOT AS_USE_MPI)
 ENDIF (NOT AS_USE_SEQ)
 
-option(AS_PRINT_COSTS		"Build AS with COST printing support." OFF)
+IF ( AS_USE_STATS )
+  set(AS_PRINT_COST ON CACHE BOOL "Print cost" FORCE)
+ENDIF ( AS_USE_STATS )
+
 option(AS_USE_MPI              	"Build AS with MPI support." OFF)
 option(AS_USE_CELL             	"Build AS with Cell support." OFF)
 option(AS_USE_SEQ              	"Build AS in sequential." ON)
@@ -81,6 +84,8 @@ option(AS_USE_ABORT            	"Build AS with Abort termination." OFF)
 option(AS_USE_BARRIER          	"Build AS with Barrier Sync. beginning." OFF)
 option(AS_USE_BACKTRACK		"Build AS with backtracking when reset." OFF)
 option(AS_USE_COMM_CONFIG	"Build AS with communication of config." OFF)
+option(AS_USE_STATS		"Build AS with statistics on." OFF)
+option(AS_PRINT_COSTS		"Build AS with COST printing support." OFF)
 
 # --------------------- DEPENDENCIES TOWARDS "CLASSIC" C++ HEADERS ---------
 # This is just a convenience to advance the detection of any potential missing
@@ -278,7 +283,7 @@ ENDIF( CMAKE_COMPILER_IS_GNUCC )
 # ------------------ PROJECT DEFINITION ---------------------
 
 IF (AS_USE_DEBUG)
-    add_definitions(-DDEBUG=1 -DDEBUG_MPI=1 -Wall -fPIC)
+    add_definitions(-DDEBUG=1 -DDEBUG_MPI=1 -DDEBUG_QUEUE -DDEBUG_PRINT_QUEUE -DDEBUG_MPI_ENDING -Wall -fPIC)
 ELSE (AS_USE_DEBUG)
     add_definitions(-DDEBUG=0)
 ENDIF (AS_USE_DEBUG)
@@ -315,11 +320,23 @@ if (AS_USE_COMM_CONFIG)
    if (AS_USE_SEQ)
       message(FATAL_ERROR "Communication can only be done with non seq code.")
    endif (AS_USE_SEQ)
-   if (NOT AS_USE_BACKTRACK)
-        message(WARNING "Communicating needs backtracking code: turned on.")
-        set(AS_USE_BACKTRACK ON CACHE BOOL "Backtracking reset" FORCE)
-   endif (NOT AS_USE_BACKTRACK)
+   add_definitions(-DCOMM_CONFIG=1)
 endif (AS_USE_COMM_CONFIG)
+
+# if (AS_USE_COMM_CONFIG_BACKTRACK)
+#    if (AS_USE_SEQ)
+#       message(FATAL_ERROR "Communication can only be done with non seq code.")
+#    endif (AS_USE_SEQ)
+#    if (NOT AS_USE_BACKTRACK)
+#         message(WARNING "Communicating needs backtracking code: turned on.")
+#         set(AS_USE_BACKTRACK ON CACHE BOOL "Backtracking reset" FORCE)
+#    endif (NOT AS_USE_BACKTRACK)
+#    add_definitions(-DCOMM_CONFIG=1)
+# endif (AS_USE_COMM_CONFIG_BACKTRACK)
+
+if (AS_USE_STATS)
+   add_definitions(-DSTATS=1)
+endif (AS_USE_STATS)
 
 # --------------------------------------------------------------------------
 add_subdirectory(src)
