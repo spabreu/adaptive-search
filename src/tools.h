@@ -124,16 +124,8 @@ typedef struct elitePool
  *------------------*/
 
 #if defined BACKTRACK
-<<<<<<< HEAD:src/tools.h
-/* Use backtrack array as circular array */
-backtrack_configuration Gbacktrack_array[SIZE_BACKTRACK] ;
-int Gbacktrack_array_begin ;
-int Gbacktrack_array_end ;
-int Gconfiguration_size_in_bytes ;
-=======
 elitePool gl_elitePool;
 elitePool gl_stockPool;
->>>>>>> 7b66fa6bbfadb0ac4e22536614e5a574b3486515:src/tools.h
 #endif /* BACKTRACK */
 
 /*------------*

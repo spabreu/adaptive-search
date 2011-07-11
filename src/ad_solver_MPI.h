@@ -38,18 +38,12 @@ typedef enum {               /* Add a protocol => update ad_solver_MPI.c! */
   NOT_A_PROTOCOL,
   LS_KILLALL,                /* msg = [range ; proc finished] */
   SENDING_RESULTS,
-<<<<<<< HEAD:src/ad_solver_MPI.h
   LS_COST,                   /* msg = [range ; cost] */
   LS_ITER,                   /* msg = [range ; iter] */
   LS_COST_ITER,                   /* msg = [range ; iter] */
   LS_CONFIG,                 /* msg = [range ; config ; cost ; iter] */
   LS_NBMSGS                  /* Number of protocols! */
 } protocol_msg ;             /* Defines protocol of messages between procs */
-=======
-  LS_COST,                          /* msg = [range ; cost] */
-  LS_NBMSGS
-} protocol_msg ;                    /* All kind of messages between processus */
->>>>>>> 7b66fa6bbfadb0ac4e22536614e5a574b3486515:src/ad_solver_MPI.h
 
 typedef struct
 {
