@@ -135,21 +135,10 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data_ptr )
   int number_received_msgs ;
   Main_MPIData * main_mpi_data_ptr = mpi_data_ptr->p_ad->main_mpi_data_ptr ;
 
-
-#if defined COMM_CONFIG
-  mpi_data_ptr->tmp_best_msg_ptr = NULL ;
-#endif
+  number_received_msgs = 0 ;
 
   DPRINTF("-------------- %d: Reception\n", my_num) ;
   /************** Check how many msg were received ***************/
-  number_received_msgs = 0 ;
-#if (defined COMM_COST) || (defined ITER_COST)
-  mpi_data_ptr->min_received_msg_cost = INT_MAX ;
-#endif
-#if defined COMM_CONFIG
-  mpi_data_ptr->min_received_msg_cost = INT_MAX ;
-#endif
-
   do {
     TDPRINTF("Proc %d launches MPI_TEST()\n", my_num) ;
     MPI_Test(&(Gthe_message->handle), &flag, &(Gthe_message->status)) ;
@@ -205,10 +194,10 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data_ptr )
       case LS_COST:     /* take the min! */
 	DPRINTF("%d takes the min between min'_recv(%d) and recvd(%d)\n",
 		my_num,
-		mpi_data_ptr->min_received_msg_cost, Gthe_message->message[1]) ;
-	if( mpi_data_ptr->min_received_msg_cost >
+		mpi_data_ptr->min_cost_received, Gthe_message->message[1]) ;
+	if( mpi_data_ptr->min_cost_received >
 	    Gthe_message->message[1] ) {
-	  mpi_data_ptr->min_received_msg_cost = Gthe_message->message[1] ;
+	  mpi_data_ptr->min_cost_received = Gthe_message->message[1] ;
 #if defined ITER_COST
 	  /* Save according iter */
 	  mpi_data_ptr->min_received_msg_iter = Gthe_message->message[2] ;
@@ -231,13 +220,13 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data_ptr )
       case LS_CONFIG:
 	DPRINTF("%d takes the min between min'_recv(%d) and recvd(%d)\n",
 		my_num,
-		mpi_data_ptr->min_received_msg_cost,
+		mpi_data_ptr->min_cost_received,
 		Gthe_message->message[ main_mpi_data_ptr->size_message - 4 ]) ;
 
-	if( mpi_data_ptr->min_received_msg_cost >
+	if( mpi_data_ptr->min_cost_received >
 	    Gthe_message->message[ main_mpi_data_ptr->size_message - 4 ] ) {
 	  /* Save according iter */
-	  mpi_data_ptr->min_received_msg_cost =
+	  mpi_data_ptr->min_cost_received =
 	    Gthe_message->message[ main_mpi_data_ptr->size_message - 4 ] ;
 	  /* Save according iter */
 	  mpi_data_ptr->min_received_msg_iter =
@@ -291,7 +280,19 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
   /*  if( ((p_ad->nb_iter_tot+p_ad->nb_iter) % count_to_communication)==0 ) {*/
   if( (p_ad->nb_iter_tot+p_ad->nb_iter) > mpi_data_ptr->nb_block*count_to_communication ) {
     mpi_data_ptr->nb_block++ ;
+    /* Reinit of some values */
+#if defined COMM_CONFIG
+    mpi_data_ptr->tmp_best_msg_ptr = NULL ;
+#endif
+#if (defined COMM_COST) || (defined ITER_COST)
+    mpi_data_ptr->min_cost_received = INT_MAX ;
+#endif
+#if defined COMM_CONFIG
+    mpi_data_ptr->min_cost_received = INT_MAX ;
+#endif
+    /* Try to free some previous messages */
     Ad_Solver_free_messages( mpi_data_ptr ) ;
+    /* Check if recvd msgs */
     number_received_msgs = Ad_Solver_recv_messages( mpi_data_ptr ) ;
     DPRINTF("%d received %d messages in total this time\n",
 	    my_num,
@@ -310,7 +311,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 		 tmp_tegami->message[1],
 		 tmp_tegami->status.MPI_SOURCE) ;
 	/* Crash cost with our value and avoids a test */
-	tmp_tegami->message[1] = mpi_data_ptr->min_received_msg_cost ;
+	tmp_tegami->message[1] = mpi_data_ptr->min_cost_received ;
 #if defined ITER_COST
 	tmp_tegami->message[2] = mpi_data_ptr->min_received_msg_iter ;
 #endif
@@ -354,16 +355,16 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 #if (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG)
     if( number_received_msgs > 0 ) {
       /** Update total values */
-      if( mpi_data_ptr->min_received_msg_cost
+      if( mpi_data_ptr->min_cost_received
 	  < mpi_data_ptr->total_min_cost_received ) {
 	mpi_data_ptr->total_min_cost_received =
-	  mpi_data_ptr->min_received_msg_cost ;
+	  mpi_data_ptr->min_cost_received ;
 #if (defined ITER_COST) || (defined COMM_CONFIG)
 	mpi_data_ptr->iter_for_best_cost_received =
 	  mpi_data_ptr->min_received_msg_iter ;
 #endif
       }
-      DPRINTF("%d: Best recv cost is now %d\n",
+      DPRINTF("%d: Best ever recv cost is now %d\n",
 	      my_num, mpi_data_ptr->total_min_cost_received) ;
 #if (defined ITER_COST) || (defined COMM_CONFIG)
       DPRINTF("... with #iter %d\n",
@@ -371,12 +372,12 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 #endif
       /******************************* COMM_COST ****************/
 #if defined COMM_COST
-      if( (unsigned)p_ad->total_cost > mpi_data_ptr->min_received_msg_cost ) {
+      if( (unsigned)p_ad->total_cost > mpi_data_ptr->min_cost_received ) {
 	ran_tmp=(((float)random())/RAND_MAX)*100 ;
 	DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		my_num,
 		p_ad->total_cost,
-		mpi_data_ptr->min_received_msg_cost,
+		mpi_data_ptr->min_cost_received,
 		ran_tmp,
 		proba_communication) ;
 	if( ran_tmp < proba_communication ) {
@@ -390,7 +391,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
       /******************************* ITER_COST ****************/
 #if defined ITER_COST
       /* Best cost AND smaller #iter */
-      if( (unsigned)p_ad->total_cost > mpi_data-ptr->min_received_msg_cost ) {
+      if( (unsigned)p_ad->total_cost > mpi_data-ptr->min_cost_received ) {
 	if( mpi_data_ptr->min_received_msg_iter < p_ad->nb_iter ) {
 	  
 	  ran_tmp=(((float)random())/RAND_MAX)*100 ;
@@ -398,7 +399,7 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 	  DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		  my_num,
 		  p_ad->total_cost,
-		  mpi_data_ptr->min_received_msg_cost,
+		  mpi_data_ptr->min_cost_received,
 		  ran_tmp,
 		  proba_communication) ;
 #endif
@@ -414,14 +415,14 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
       /******************************* COMM_CONFIG ****************/
 #if defined COMM_CONFIG
       /* Best cost */
-      if( (unsigned)p_ad->total_cost > mpi_data_ptr->min_received_msg_cost ) {
+      if( (unsigned)p_ad->total_cost > mpi_data_ptr->min_cost_received ) {
 	/*	ran_tmp=(((float)random())/RAND_MAX)*100 ; */
 	ran_tmp = 0 ;
 #if defined DEBUG	  
 	DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
 		my_num,
 		p_ad->total_cost,
-		mpi_data_ptr->min_received_msg_cost,
+		mpi_data_ptr->min_cost_received,
 		ran_tmp,
 		proba_communication) ;
 	if( mpi_data_ptr->tmp_best_msg_ptr == NULL ) {
@@ -432,12 +433,12 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 	}
 #endif
 	if( ran_tmp < proba_communication ) {
-	  TDPRINTF("Proc %d [always] takes new configuration!\n", my_num) ;
+	  TDPRINTF("Proc %d takes received configuration!\n", my_num) ;
 	  /* Configuration and update information */
 	  memcpy( mpi_data_ptr->cpy_best_msg + 1,
 		  p_ad->sol,
 		  main_mpi_data_ptr->size_message - 5 ) ;
-	  p_ad->total_cost =  /* also = mpi_data_ptr->min_received_msg_cost ; */
+	  p_ad->total_cost =  /* also = mpi_data_ptr->min_cost_received ; */
 	    mpi_data_ptr->cpy_best_msg[ main_mpi_data_ptr->size_message - 4 ] ;
 
 	/* Save nb_iter_tot += nb_iter - nb_iter recu
@@ -480,8 +481,8 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 	 done a restart */
     TDPRINTF("??? total_cost %d < min_rcvd %d ???\n",
 	     p_ad->total_cost,
-	     mpi_data_ptr->min_received_msg_cost) ;
-    if( p_ad->total_cost < mpi_data_ptr->min_received_msg_cost ) {
+	     mpi_data_ptr->min_cost_received) ;
+    if( p_ad->total_cost < mpi_data_ptr->min_cost_received ) {
       if( mpi_data_ptr->best_cost_sent > p_ad->total_cost ) {
 	mpi_data_ptr->best_cost_sent = p_ad->total_cost ;
 	mpi_data_ptr->iter_of_best_cost_sent = p_ad->nb_iter ;
@@ -648,11 +649,11 @@ send_log_n( unsigned int size_message,
 
     for( int j=0 ; j<size_message ; ++j ) {
       message->message[j] = msg[j] ;
-      printf("->[%d]: %d | msg[%d]: %d\n",
+      /*      printf("->[%d]: %d | msg[%d]: %d\n",
 	     j,
 	     message->message[j],
 	     j,
-	     msg[j]) ;
+	     msg[j]) ;*/
     }
 
     TDPRINTF("Fake: Proc %d sends msg (config;%d;%d) protocol %s range %d | l %d!\n",

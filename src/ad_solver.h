@@ -11,7 +11,6 @@
 
 #include "tools.h"
 #include "main_MPI.h"         /* for Main_MPIData */
-//#include "ad_solver_MPI.h"         /* for Ad_Solve_MPIData */
 
 #ifdef CELL
 #include <malloc.h>
@@ -93,6 +92,10 @@ struct AdData
 #endif
 
 } ;
+#if !(defined MPI)
+typedef struct AdData AdData ;
+#endif
+
 
 /*------------------*
  * Global variables *

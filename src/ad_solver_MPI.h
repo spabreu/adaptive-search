@@ -55,7 +55,7 @@ typedef struct
 
 #if defined COMM_COST
   /* Store the min of the recv cost per C-block */
-  unsigned int min_received_msg_cost ;
+  unsigned int min_cost_received ;
   /* The last cost that we sent */
   unsigned int best_cost_sent ;
   /* The best cost ever received */
@@ -67,7 +67,7 @@ typedef struct
 
 #if defined ITER_COST
   /* Store the min of the recv cost per C-block */
-  unsigned int min_received_msg_cost ;
+  unsigned int min_cost_received ;
   /* The last cost that we sent */
   unsigned int best_cost_sent ;
   /* The best cost ever received */
@@ -89,7 +89,7 @@ typedef struct
 
 #if defined COMM_CONFIG
   /* Store the min of the recv cost per C-block */
-  unsigned int min_received_msg_cost ;
+  unsigned int min_cost_received ;
   /* The last cost that we sent */
   unsigned int best_cost_sent ;
   /* The best cost ever received */

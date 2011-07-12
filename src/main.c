@@ -976,9 +976,9 @@ Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad)
 	      L("MPI specific options:");
 	      L("   -C NB       check comm and send comm every NB iterations");
               L("   -I          set the same initial configuration to all processors");
-#if (defined COMM_COST) || (defined ITER_COST)
+#if (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG)
 	      L("   -z NB       rand()*100 < NB -> sends cost");
-#endif /* (defined COMM_COST) || (defined ITER_COST) */
+#endif /* (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG) */
 #endif /* MPI */
 	      exit(0);
 
