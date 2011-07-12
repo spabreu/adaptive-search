@@ -39,6 +39,9 @@ char * protocole_name [LS_NBMSGS] =
  * Global variables *
  *------------------*/
 
+extern int vec_costs[500000] ;
+extern unsigned long int card_vec_costs ;
+
 /*------------*
  * Prototypes *
  *------------*/
@@ -276,18 +279,19 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 #endif /* COMM_COST || ITER_COST || COMM_CONFIG */
   AdData * p_ad = mpi_data_ptr->p_ad ;
   Main_MPIData * main_mpi_data_ptr = mpi_data_ptr->p_ad->main_mpi_data_ptr ;
+#if (defined COMM_CONFIG)
+  int take_sol=0 ; /* to know if we changed our sol. Then donc send! */
+#endif
 
   /*  if( ((p_ad->nb_iter_tot+p_ad->nb_iter) % count_to_communication)==0 ) {*/
   if( (p_ad->nb_iter_tot+p_ad->nb_iter) > mpi_data_ptr->nb_block*count_to_communication ) {
     mpi_data_ptr->nb_block++ ;
     /* Reinit of some values */
-#if defined COMM_CONFIG
-    mpi_data_ptr->tmp_best_msg_ptr = NULL ;
-#endif
 #if (defined COMM_COST) || (defined ITER_COST)
     mpi_data_ptr->min_cost_received = INT_MAX ;
 #endif
 #if defined COMM_CONFIG
+    mpi_data_ptr->tmp_best_msg_ptr = NULL ;
     mpi_data_ptr->min_cost_received = INT_MAX ;
 #endif
     /* Try to free some previous messages */
@@ -329,7 +333,8 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 		 my_num,
 		 tmp_tegami->message[ main_mpi_data_ptr->size_message - 4 ],
 		 tmp_tegami->status.MPI_SOURCE) ;
-	if( mpi_data_ptr->tmp_best_msg_ptr != NULL ) {
+	if( (mpi_data_ptr->tmp_best_msg_ptr != NULL) &&
+	    (tmp_tegami->message[0] > 0) ) {
 	  /* Crush messages, but not the range! */
 	  TDPRINTF("%d crushes all msgs with config with best cost\n",
 		   my_num) ;
@@ -433,10 +438,12 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 	}
 #endif
 	if( ran_tmp < proba_communication ) {
-	  TDPRINTF("Proc %d takes received configuration!\n", my_num) ;
-	  /* Configuration and update information */
-	  memcpy( mpi_data_ptr->cpy_best_msg + 1,
-		  p_ad->sol,
+	  TDPRINTF("Proc %d crushes its config with"
+		   " received configuration!\n", my_num) ;
+	  take_sol = 1 ;
+	  /* Crush configuration and update information */
+	  memcpy( p_ad->sol,
+		  mpi_data_ptr->cpy_best_msg + 1,
 		  main_mpi_data_ptr->size_message - 5 ) ;
 	  p_ad->total_cost =  /* also = mpi_data_ptr->min_cost_received ; */
 	    mpi_data_ptr->cpy_best_msg[ main_mpi_data_ptr->size_message - 4 ] ;
@@ -479,28 +486,34 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
     /************** Send? ************/
       /* Compare to the last cost received since everyone can have
 	 done a restart */
-    TDPRINTF("??? total_cost %d < min_rcvd %d ???\n",
+    TDPRINTF(": %d sends if total_cost %d < min_rcvd %d...\n",
+	     my_num,
 	     p_ad->total_cost,
 	     mpi_data_ptr->min_cost_received) ;
-    if( p_ad->total_cost < mpi_data_ptr->min_cost_received ) {
-      if( mpi_data_ptr->best_cost_sent > p_ad->total_cost ) {
-	mpi_data_ptr->best_cost_sent = p_ad->total_cost ;
-	mpi_data_ptr->iter_of_best_cost_sent = p_ad->nb_iter ;
-      }
-      DPRINTF("Proc %d sends cost %d\n", my_num, p_ad->total_cost) ;
-      mpi_data_ptr->s_cost_message[0] = mpi_size ;
-      memcpy( mpi_data_ptr->s_cost_message + 1,
-	      p_ad->sol,
-	      main_mpi_data_ptr->size_message - 5) ;
-      *(mpi_data_ptr->s_cost_message + main_mpi_data_ptr->size_message - 4) = 
-	p_ad->total_cost ;
-      *(mpi_data_ptr->s_cost_message + main_mpi_data_ptr->size_message - 3) =
-	p_ad->nb_iter ;
+    if( take_sol == 1 )
+      TDPRINTF("... but %d crushed his sol so don't send!\n",
+	       my_num) ;
+    else {	       
+      if( p_ad->total_cost < mpi_data_ptr->min_cost_received ) {
+	if( mpi_data_ptr->best_cost_sent > p_ad->total_cost ) {
+	  mpi_data_ptr->best_cost_sent = p_ad->total_cost ;
+	  mpi_data_ptr->iter_of_best_cost_sent = p_ad->nb_iter ;
+	}
+	DPRINTF("Proc %d sends cost %d\n", my_num, p_ad->total_cost) ;
+	mpi_data_ptr->s_cost_message[0] = mpi_size ;
+	memcpy( mpi_data_ptr->s_cost_message + 1,
+		p_ad->sol,
+		main_mpi_data_ptr->size_message - 5) ;
+	*(mpi_data_ptr->s_cost_message + main_mpi_data_ptr->size_message - 4) = 
+	  p_ad->total_cost ;
+	*(mpi_data_ptr->s_cost_message + main_mpi_data_ptr->size_message - 3) =
+	  p_ad->nb_iter ;
       /* Update last info... nb swap, etc. */
-      send_log_n(p_ad->main_mpi_data_ptr->size_message,
-		 mpi_data_ptr->s_cost_message,
-		 LS_CONFIG) ;
-    }
+	send_log_n(p_ad->main_mpi_data_ptr->size_message,
+		   mpi_data_ptr->s_cost_message,
+		   LS_CONFIG) ;
+      }
+    } /* take_sol */
 #endif /* COMM_CONFIG */
   } /* if( (p_ad->nb_iter % count_to_communication)==0 ) { */
   return 0 ;

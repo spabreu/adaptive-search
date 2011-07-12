@@ -19,6 +19,7 @@
 
 #include "ad_solver.h"
 #include "tools.h"
+
 #include "ad_solver_MPI.h"
 
 #if defined(CELL) && defined(__SPU__)
