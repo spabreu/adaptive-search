@@ -297,8 +297,11 @@ Select_Var_Min_Conflict(void)
 #else
 	  ad.nb_iter++;
 #if defined PRINT_COSTS
-	  card_vec_costs++ ;
-	  vec_costs[card_vec_costs] = ad.total_cost ;
+	  /*	  card_vec_costs++ ;
+		  vec_costs[card_vec_costs] = ad.total_cost ; */
+	  char line[200] ;
+	  sprintf(line,"%d    %d   %d\n", ad.nb_iter, ad.total_cost, my_num) ;
+	  writen(file_descriptor_print_cost, line, strlen(line)) ;
 #endif
 	  x = Random(list_i_nb);
 	  max_i = list_i[x];
@@ -877,8 +880,11 @@ Ad_Solve(AdData *p_ad)
 
       ad.nb_iter++;
 #if defined PRINT_COSTS
-      card_vec_costs++ ;
-      vec_costs[card_vec_costs] = ad.total_cost ;
+      /*      card_vec_costs++ ;
+	      vec_costs[card_vec_costs] = ad.total_cost ; */
+      char line[200] ;
+      sprintf(line,"%ld    %d   %d\n", ad.nb_iter, ad.total_cost, my_num) ;
+      writen(file_descriptor_print_cost, line, strlen(line)) ;
 #endif
 #if defined MPI
       if( Ad_Solve_manage_MPI_communications( & mpi_data ) == 10 )

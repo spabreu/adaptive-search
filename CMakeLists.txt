@@ -282,8 +282,12 @@ ENDIF( CMAKE_COMPILER_IS_GNUCC )
 
 # ------------------ PROJECT DEFINITION ---------------------
 
-IF (AS_USE_DEBUG)
-    add_definitions(-DDEBUG=1 -DDEBUG_MPI=1 -DDEBUG_QUEUE -DDEBUG_PRINT_QUEUE -DDEBUG_MPI_ENDING -Wall -fPIC)
+IF( AS_USE_DEBUG )
+   IF( AS_USE_MPI )
+     add_definitions(-DDEBUG=1 -DDEBUG_MPI=1 -DDEBUG_QUEUE -DDEBUG_PRINT_QUEUE -DDEBUG_MPI_ENDING -Wall -fPIC)
+   ELSE( AS_USE_MPI )
+     add_definitions(-DDEBUG=1 -Wall -fPIC)
+   ENDIF( AS_USE_MPI )
 ELSE (AS_USE_DEBUG)
     add_definitions(-DDEBUG=0)
 ENDIF (AS_USE_DEBUG)
