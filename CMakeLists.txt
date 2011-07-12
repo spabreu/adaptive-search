@@ -289,7 +289,7 @@ IF( AS_USE_DEBUG )
      add_definitions(-DDEBUG=1 -Wall -fPIC)
    ENDIF( AS_USE_MPI )
 ELSE (AS_USE_DEBUG)
-    add_definitions(-DDEBUG=0)
+    add_definitions(-DNDEBUG)
 ENDIF (AS_USE_DEBUG)
 
 if (AS_USE_SEQ)
