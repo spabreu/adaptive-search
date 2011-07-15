@@ -106,9 +106,9 @@ typedef struct
   int iter_for_best_cost_received ;
 
   /* cpy of best msg rcvd on a C-block */
-  unsigned int * cpy_best_msg ;
+  unsigned int * cpy_best_msg ; /* memory allocated at beginning */
   /* temporary ptr on best msg */
-  unsigned int * tmp_best_msg_ptr ;
+  unsigned int * tmp_best_msg_ptr ; /* only a copy of ptr! */
 #endif
 } Ad_Solve_MPIData ;
 
@@ -136,6 +136,7 @@ tegami list_recv_msgs ;
 
 #if (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG)
 unsigned int proba_communication ;  /* > (rand*100) -> sends cost */
+unsigned int cost_threshold ;
 #endif /* (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG) */
 
 /*------------*

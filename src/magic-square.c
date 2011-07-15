@@ -23,7 +23,7 @@
 /* for a k in 0..size-1 gives line, col, d1 (1/0), d2 (0/1) */
 
 /* YC->DD: normal that we have a define of CELL right before an ifdef? */
-#define CELL
+//#define CELL
 
 #ifdef CELL
 

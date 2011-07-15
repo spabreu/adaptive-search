@@ -759,6 +759,7 @@ Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad)
   count_to_communication = CBLOCK_DEFAULT ;
 #if (defined COMM_COST)||(defined ITER_COST)||(defined COMM_CONFIG)
   proba_communication = 0 ;
+  cost_threshold = 0 ;
 #endif
 #endif /* MPI */
 
@@ -924,6 +925,15 @@ Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad)
 		}
 	      proba_communication = atoi(argv[i]);
 	      continue;
+	    case 'x':
+	      if (++i >= argc)
+		{
+		  L(">current cost), not affected by others");
+		  exit(1);
+		}
+	      cost_threshold = atoi(argv[i]);
+	      continue;
+
 #endif
 #endif /* MPI */
 #ifdef PRINT_COSTS
@@ -978,6 +988,7 @@ Parse_Cmd_Line(int argc, char *argv[], AdData *p_ad)
               L("   -I          set the same initial configuration to all processors");
 #if (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG)
 	      L("   -z NB       rand()*100 < NB -> sends cost");
+	      L("   -x NB       if (current cost<NB), not affected by others") ;
 #endif /* (defined COMM_COST) || (defined ITER_COST) || (defined COMM_CONFIG) */
 #endif /* MPI */
 	      exit(0);

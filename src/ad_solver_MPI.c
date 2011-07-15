@@ -258,7 +258,7 @@ Ad_Solver_recv_messages( Ad_Solve_MPIData * mpi_data_ptr )
   } while( flag > 0 ) ;
 
 #if defined COMM_CONFIG
-  /* Save the message containing the best configuration received */
+  /* Deep copy of the best configuration received */
   if( mpi_data_ptr->tmp_best_msg_ptr != NULL )
     memcpy(mpi_data_ptr->cpy_best_msg, mpi_data_ptr->tmp_best_msg_ptr,
 	   main_mpi_data_ptr->size_message) ;
@@ -329,15 +329,19 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 	/**************************** LS_CONFIG *********************/
 #if defined COMM_CONFIG
       case LS_CONFIG:
-	TDPRINTF("%d treats LS_CONFIG of cost %d from %d\n",
+	TDPRINTF("%d treats LS_CONFIG of cost %d iter %d from %d\n",
 		 my_num,
 		 tmp_tegami->message[ main_mpi_data_ptr->size_message - 4 ],
+		 tmp_tegami->message[ main_mpi_data_ptr->size_message - 3 ],
 		 tmp_tegami->status.MPI_SOURCE) ;
-	if( (mpi_data_ptr->tmp_best_msg_ptr != NULL) &&
-	    (tmp_tegami->message[0] > 0) ) {
+	if( (mpi_data_ptr->tmp_best_msg_ptr != tmp_tegami->message) ) {
+	  /* &&
+	     (tmp_tegami->message[0] > 0) ) { */
 	  /* Crush messages, but not the range! */
-	  TDPRINTF("%d crushes all msgs with config with best cost\n",
-		   my_num) ;
+	  TDPRINTF("%d crushes msg %d on %d with config with best cost\n",
+		   my_num,
+		   i,
+		   number_received_msgs) ;
 	  memcpy(tmp_tegami->message + 1, mpi_data_ptr->cpy_best_msg + 1,
 		 main_mpi_data_ptr->size_message - 1) ;
 	}
@@ -379,7 +383,8 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 #if defined COMM_COST
       if( (unsigned)p_ad->total_cost > mpi_data_ptr->min_cost_received ) {
 	ran_tmp=(((float)random())/RAND_MAX)*100 ;
-	DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
+	DPRINTF("Proc %d (cost %d > %d cost received):"
+		" ran=%d >?< proba user %d\n",
 		my_num,
 		p_ad->total_cost,
 		mpi_data_ptr->min_cost_received,
@@ -420,39 +425,47 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
       /******************************* COMM_CONFIG ****************/
 #if defined COMM_CONFIG
       /* Best cost */
-      if( (unsigned)p_ad->total_cost > mpi_data_ptr->min_cost_received ) {
-	/*	ran_tmp=(((float)random())/RAND_MAX)*100 ; */
-	ran_tmp = 0 ;
+      if( (unsigned int)p_ad->total_cost > cost_threshold ) {
+	if( (unsigned)p_ad->total_cost > mpi_data_ptr->min_cost_received ) {
+	  /*	ran_tmp=(((float)random())/RAND_MAX)*100 ; */
+	  ran_tmp = 0 ;
 #if defined DEBUG	  
-	DPRINTF("Proc %d (cost %d > %d): ran=%d >?< %d\n",
-		my_num,
-		p_ad->total_cost,
-		mpi_data_ptr->min_cost_received,
-		ran_tmp,
-		proba_communication) ;
-	if( mpi_data_ptr->tmp_best_msg_ptr == NULL ) {
-	  printf("Pointer on best solution received is NULL and"
-		 " our total cost is less than the cost received?\n"
-		 "Exiting...\n\n") ;
-	  exit(-1) ;
-	}
+	  DPRINTF("Proc %d (current cost %d > %d cost received):"
+		  " ran=%d >?< %d proba user\n",
+		  my_num,
+		  p_ad->total_cost,
+		  mpi_data_ptr->min_cost_received,
+		  ran_tmp,
+		  proba_communication) ;
+	  if( mpi_data_ptr->tmp_best_msg_ptr == NULL ) {
+	    printf("Pointer on best solution received is NULL and"
+		   " our total cost is less than the cost received?\n"
+		   "Exiting...\n\n") ;
+	    exit(-1) ;
+	  }
 #endif
-	if( ran_tmp < proba_communication ) {
-	  TDPRINTF("Proc %d crushes its config with"
-		   " received configuration!\n", my_num) ;
-	  take_sol = 1 ;
-	  /* Crush configuration and update information */
-	  memcpy( p_ad->sol,
-		  mpi_data_ptr->cpy_best_msg + 1,
-		  main_mpi_data_ptr->size_message - 5 ) ;
-	  p_ad->total_cost =  /* also = mpi_data_ptr->min_cost_received ; */
-	    mpi_data_ptr->cpy_best_msg[ main_mpi_data_ptr->size_message - 4 ] ;
-
-	/* Save nb_iter_tot += nb_iter - nb_iter recu
-	   et nb_iter = nb_iter recu */
-	  TDPRINTF("TODO: compteurs cumules") ;
-	} /* if( tan_tmp */  
-      } /* if( p_ad->total.cost */
+	  if( ran_tmp <= proba_communication ) {
+	    TDPRINTF("Proc %d crushes its config with"
+		     " received configuration!\n", my_num) ;
+	    take_sol = 1 ;
+	    /* Crush configuration and update information */
+	    memcpy( p_ad->sol,
+		    mpi_data_ptr->cpy_best_msg + 1,
+		    main_mpi_data_ptr->size_message - 5 ) ;
+	    p_ad->total_cost =  /* also = mpi_data_ptr->min_cost_received ; */
+	      mpi_data_ptr->cpy_best_msg[ main_mpi_data_ptr->size_message - 4 ] ;
+	    p_ad->nb_iter_tot += p_ad->nb_iter -
+	      mpi_data_ptr->cpy_best_msg[ main_mpi_data_ptr->size_message - 3 ] ;
+	    p_ad->nb_iter = 
+	      mpi_data_ptr->cpy_best_msg[ main_mpi_data_ptr->size_message - 3 ] ;
+	    TDPRINTF("TODO: compteurs cumules") ; /* nb swap ? */
+	  } /* if( tan_tmp */  
+	} /* if( p_ad->total.cost */
+      } else {      /* if( p_ad->total.cost */
+	TDPRINTF("Don't do anything since current cost %d < %d user value\n",
+		 (unsigned int)p_ad->total_cost,
+		 cost_threshold ) ;
+      }
 #endif /* COMM_CONFIG */
     } /* if( number_received_msgs > 0 ) { */
 #endif /* COMM_COST || ITER_COST || COMM_CONFIG */
@@ -504,9 +517,9 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 	memcpy( mpi_data_ptr->s_cost_message + 1,
 		p_ad->sol,
 		main_mpi_data_ptr->size_message - 5) ;
-	*(mpi_data_ptr->s_cost_message + main_mpi_data_ptr->size_message - 4) = 
+	mpi_data_ptr->s_cost_message[main_mpi_data_ptr->size_message - 4] = 
 	  p_ad->total_cost ;
-	*(mpi_data_ptr->s_cost_message + main_mpi_data_ptr->size_message - 3) =
+	mpi_data_ptr->s_cost_message[main_mpi_data_ptr->size_message - 3] =
 	  p_ad->nb_iter ;
       /* Update last info... nb swap, etc. */
 	send_log_n(p_ad->main_mpi_data_ptr->size_message,
@@ -658,21 +671,21 @@ send_log_n( unsigned int size_message,
 
   for( i=1 ; i<= nb_steps ; ++i ) {
     message = get_tegami_from( &list_allocated_msgs ) ;
-    //    memcpy(message->message, msg, size_message) ; 
-
+    /* YC: FIXME. I don't get why we have to for() and memcpy doesnt work */
+    /*    memcpy(message->message, msg, size_message) ; */
     for( int j=0 ; j<size_message ; ++j ) {
       message->message[j] = msg[j] ;
-      /*      printf("->[%d]: %d | msg[%d]: %d\n",
-	     j,
-	     message->message[j],
-	     j,
-	     msg[j]) ;*/
+      /*  printf("->[%d]: %d | msg[%d]: %d\n",
+      j,
+      message->message[j],
+      j,
+      msg[j]) ; */
     }
 
-    TDPRINTF("Fake: Proc %d sends msg (config;%d;%d) protocol %s range %d | l %d!\n",
+    TDPRINTF("Fake: Proc %d sends msg (config;%d|%d;%d|%d) protocol %s range %d | l %d!\n",
 	     my_num,
-	     message->message[size_message-4],
-	     message->message[size_message-3],
+	     message->message[size_message-4], msg[size_message-4],
+	     message->message[size_message-3], msg[size_message-3],
 	     protocole_name[tag_mpi],
 	     message->message[0],
 	     size_message);
@@ -702,20 +715,11 @@ send_log_n( unsigned int size_message,
 	     message->message[0],
 	     sentNodes[i-1]) ;
 #elif defined COMM_CONFIG
-    TDPRINTF("Proc %d sends msg (config;%d;%d) protocol %s range %d to %d!\n",
+    TDPRINTF("Proc %d sends msg (config;%d|%d;%d|%d) protocol %s!\n",
 	     my_num,
-	     message->message[size_message-4],
-	     message->message[size_message-3],
-	     protocole_name[tag_mpi],
-	     message->message[0],
-	     sentNodes[i-1]) ;
-    TDPRINTF("Proc %d sends msg (config;%d;%d) protocol %s range %d to %d!\n",
-	     my_num,
-	     msg[size_message-4],
-	     msg[size_message-3],
-	     protocole_name[tag_mpi],
-	     msg[0],
-	     sentNodes[i-1]) ;
+	     message->message[size_message-4],	     msg[size_message-4],
+	     message->message[size_message-3], 	     msg[size_message-3],
+	     protocole_name[tag_mpi]) ;
 #endif
 #endif /* DEBUG_MPI */
 
