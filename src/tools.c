@@ -758,7 +758,8 @@ int vec3[SIZE];
 int actual_value[SIZE];
 
 
-int CompareInt(const void *x, const void *y)
+int
+CompareInt(const void *x, const void *y)
 {
   return * (int *) x - * (int *) y;
 }
@@ -854,13 +855,15 @@ main(int argc, char *argv[])
 
 #if defined BACKTRACK
 
-void split(long long int tooLong, unsigned int *high, unsigned int *low)
+void
+split(long long int tooLong, unsigned int *high, unsigned int *low)
 {
   *high = (int)(tooLong >> 32);
   *low = (int)(tooLong & 0xFFFFFFFF);  
 }
 
-long long int concat(unsigned int high, unsigned int low)
+long long int
+concat(unsigned int high, unsigned int low)
 {
   return ((long long int)high << 32 | low);
 }
@@ -868,7 +871,8 @@ long long int concat(unsigned int high, unsigned int low)
 
 /* To obtain a struct backtrack_configuration from the stock pool */
 /* or from the elite pool if stock is empty */
-backtrack_configuration* getFreeConfig()
+backtrack_configuration *
+getFreeConfig()
 {
   if (gl_stockPool.config_list_size != 0)
     {
@@ -890,7 +894,8 @@ backtrack_configuration* getFreeConfig()
 }
 
 /* Push a configuration into the elite pool */
-void pushElite(backtrack_configuration *item)
+void
+pushElite(backtrack_configuration *item)
 {
   if (gl_elitePool.config_list_size == SIZE_BACKTRACK)
     {
@@ -938,7 +943,8 @@ void pushElite(backtrack_configuration *item)
 }
 
 /* Pop the best configuration from the elite pool */
-backtrack_configuration* popElite()
+backtrack_configuration *
+popElite()
 {
   if (gl_elitePool.config_list_size == 0)
     {
@@ -966,7 +972,8 @@ backtrack_configuration* popElite()
 
 
 /* Push a backtrack_configuration into the stock pool*/
-void pushStock(backtrack_configuration *item)
+void
+pushStock(backtrack_configuration *item)
 {
   if (gl_stockPool.config_list_size == SIZE_BACKTRACK)
     {
@@ -986,7 +993,8 @@ void pushStock(backtrack_configuration *item)
 }
 
 /* Pop a backtrack_configuration from the stock pool */
-backtrack_configuration* popStock()
+backtrack_configuration *
+popStock()
 {
    if (gl_stockPool.config_list_size == 0)
     {
@@ -1047,3 +1055,15 @@ backtrack_configuration* popStock()
 /*   return(item) ;  */
 /* } */
 #endif /* BACKTRACK */
+
+#if defined STATS
+void
+print_stats()
+{
+  TPRINTF("======== STATS =========\n") ;
+  TPRINTF("Nb iter in main loop: %d\n", Gad_solve_stats.nb_iter_main_loop) ;
+  TPRINTF("Nb iter in Min_Conflict fct: %d\n",
+	  Gad_solve_stats.nb_iter_Min_Conflict_fct) ;
+  TPRINTF("======== END STATS =========\n") ;
+}
+#endif

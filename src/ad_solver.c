@@ -296,6 +296,9 @@ Select_Var_Min_Conflict(void)
 	  return;
 #else
 	  ad.nb_iter++;
+#if defined STATS
+	  Gad_solve_stats.nb_iter_Min_Conflict_fct++ ;
+#endif
 #if defined PRINT_COSTS
 	  /*	  card_vec_costs++ ;
 		  vec_costs[card_vec_costs] = ad.total_cost ; */
@@ -760,6 +763,10 @@ Ad_Solve(AdData *p_ad)
 #if defined MPI
   Ad_Solve_MPIData mpi_data ;
 #endif
+#if defined STATS
+  Gad_solve_stats.nb_iter_main_loop = 0 ;
+  Gad_solve_stats.nb_iter_Min_Conflict_fct = 0 ;
+#endif
 
   ad = *p_ad;	   /* does this help gcc optim (put some fields in regs) ? */
 
@@ -879,6 +886,9 @@ Ad_Solve(AdData *p_ad)
 	}
 
       ad.nb_iter++;
+#if defined STATS
+      Gad_solve_stats.nb_iter_main_loop++ ;
+#endif
 #if defined PRINT_COSTS
       /*      card_vec_costs++ ;
 	      vec_costs[card_vec_costs] = ad.total_cost ; */

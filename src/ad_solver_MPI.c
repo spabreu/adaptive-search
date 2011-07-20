@@ -461,11 +461,14 @@ Ad_Solve_manage_MPI_communications( Ad_Solve_MPIData * mpi_data_ptr )
 	    TDPRINTF("TODO: compteurs cumules") ; /* nb swap ? */
 	  } /* if( tan_tmp */  
 	} /* if( p_ad->total.cost */
-      } else {      /* if( p_ad->total.cost */
+      } 
+#if defined DEBUG
+      else {      /* if( p_ad->total.cost */
 	TDPRINTF("Don't do anything since current cost %d < %d user value\n",
 		 (unsigned int)p_ad->total_cost,
 		 cost_threshold ) ;
       }
+#endif
 #endif /* COMM_CONFIG */
     } /* if( number_received_msgs > 0 ) { */
 #endif /* COMM_COST || ITER_COST || COMM_CONFIG */

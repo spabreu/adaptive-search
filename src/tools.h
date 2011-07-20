@@ -119,9 +119,20 @@ typedef struct elitePool
 
 #endif /* BACKTRACK */
 
+#if defined STATS
+typedef struct Ad_Solve_Stats {
+  unsigned int nb_iter_main_loop ;
+  unsigned int nb_iter_Min_Conflict_fct ;
+} Ad_Solve_Stats ;
+#endif
+
 /*------------------*
  * Global variables *
  *------------------*/
+
+#if defined STATS
+Ad_Solve_Stats Gad_solve_stats ;
+#endif
 
 #if defined BACKTRACK
 elitePool gl_elitePool;
@@ -191,6 +202,10 @@ backtrack_configuration* popStock();
 /* unqueue_configuration() */
 #endif /* BACKTRACK */
 
+#if defined STATS
+void
+print_stats() ;
+#endif
 
 #ifndef No_Gcc_Warn_Unused_Result
 #define No_Gcc_Warn_Unused_Result(t) do { if(t) {} } while(0)

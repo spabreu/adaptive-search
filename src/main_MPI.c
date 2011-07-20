@@ -152,6 +152,12 @@ AS_MPI_completion( Main_MPIData * mpi_data_ptr )
   /* Perform a broadcast to kill everyone since I have the solution */
   
   DPRINTF("Proc %d enters finishing state!\n", my_num) ;
+#if defined STATS
+  TPRINTF("======== STATS MPI =========\n") ;
+  TPRINTF("Nb sent messages: %d", Gmpi_stats.nb_sent_messages) ;
+  TPRINTF("Nb my messages: %d", Gmpi_stats.nb_sent_mymessages) ;
+  TPRINTF("======== END STATS MPI =========\n") ;
+#endif
 #if defined MPI_ABORT
   PRINTF("%s\n", mpi_data_ptr->results) ;
   TPRINTF("%d launches MPI_Abort()!\n", my_num) ;

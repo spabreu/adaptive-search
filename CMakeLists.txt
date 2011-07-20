@@ -86,6 +86,7 @@ option(AS_USE_BACKTRACK		"Build AS with backtracking when reset." OFF)
 option(AS_USE_COMM_CONFIG	"Build AS with communication of config." OFF)
 option(AS_USE_STATS		"Build AS with statistics on." OFF)
 option(AS_PRINT_COSTS		"Build AS with COST printing support." OFF)
+option(AS_PRINT_QUEUE		"Build AS with MPI Msg queue printing support." OFF)
 
 # --------------------- DEPENDENCIES TOWARDS "CLASSIC" C++ HEADERS ---------
 # This is just a convenience to advance the detection of any potential missing
@@ -284,7 +285,7 @@ ENDIF( CMAKE_COMPILER_IS_GNUCC )
 
 IF( AS_USE_DEBUG )
    IF( AS_USE_MPI )
-     add_definitions(-DDEBUG=1 -DDEBUG_MPI=1 -DDEBUG_QUEUE -DDEBUG_PRINT_QUEUE -DDEBUG_MPI_ENDING -Wall -fPIC)
+     add_definitions(-DDEBUG=1 -DDEBUG_MPI=1 -Wall -fPIC)
    ELSE( AS_USE_MPI )
      add_definitions(-DDEBUG=1 -Wall -fPIC)
    ENDIF( AS_USE_MPI )
@@ -341,6 +342,18 @@ endif (AS_USE_COMM_CONFIG)
 if (AS_USE_STATS)
    add_definitions(-DSTATS=1)
 endif (AS_USE_STATS)
+
+if (AS_PRINT_QUEUE)
+   if( NOT AS_USE_MPI )
+     message(FATAL_ERROR "PRINT_QUEUE can only be set in MPI mode.")
+   endif( NOT AS_USE_MPI )
+   if( NOT AS_USE_DEBUG )
+     message(FATAL_ERROR "PRINT_QUEUE can only be set in DEBUG mode.")
+   endif( NOT AS_USE_DEBUG )
+   add_definitions(-DDEBUG_PRINT_QUEUE=1 -DDEBUG_QUEUE=1 -DDEBUG_MPI_ENDING=1)
+endif (AS_PRINT_QUEUE)
+
+
 
 # --------------------------------------------------------------------------
 add_subdirectory(src)

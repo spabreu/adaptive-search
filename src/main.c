@@ -358,7 +358,9 @@ main(int argc, char *argv[])
       PRINTF("Total number of performed backtracks starting from another variable: %d\n", gl_elitePool.nb_variable_backtrack);
       PRINTF("Total number of performed backtracks starting from another value: %d\n", gl_elitePool.nb_value_backtrack);
 #endif
-
+#if defined STATS
+      print_stats() ;
+#endif
       return 0 ;
     } /* (count <= 0) */
 
@@ -606,12 +608,15 @@ main(int argc, char *argv[])
     }
 #endif /* BACKTRACK */
 
+#if defined STATS
+  print_stats() ;
+#endif
+
 #if !( defined MPI )
-# if defined PRINT_COSTS
+#if defined PRINT_COSTS
   print_costs() ;
-# endif
-  /* Seq code is now ending */
-  TDPRINTF("Processus ends now.\n") ;
+#endif
+  TDPRINTF("Processus ends now.\n") ;   /* Seq code is now ending */
 #else /* !( defined MPI) */
   AS_MPI_completion( &mpi_data ) ;
 #endif /* MPI */
