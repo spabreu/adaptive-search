@@ -174,7 +174,8 @@ void as_init (spe_program_handle_t *program, AdData *ad)
   // -- all set; create pthreads to start each SPU ----------------------------
   for (i=0; i<nb_threads; ++i) {
     // -- create thread and start program
-    if (pthread_create ((pthread_t *)&sds[i].thr, NULL, &as_thread, (void *) &sds[i]))  {
+    if (pthread_create ((pthread_t *)&sds[i].thr, NULL,
+			&as_thread, (void *) &sds[i]))  {
       perror ("pthread_create");
       exit (1);
     }

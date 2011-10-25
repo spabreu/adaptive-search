@@ -5,6 +5,7 @@ vpath    %.c .:..
 S        = ..
 DEBUG    = 0
 COMM	 = -UCELL_COMM
+MBX      = -UAS_MBX
 
 ###############################################################################
 
@@ -24,6 +25,7 @@ IMPORTS := libdefaults.a
 
 CFLAGS += -DDEBUG=$(DEBUG)
 CFLAGS += $(COMM)
+CFLAGS += $(MBX)
 CFLAGS += -DCELL=1 -UAS_PPU -DAS_SPU=1
 CFLAGS += -Wno-unused-parameter
 

@@ -6,8 +6,10 @@ DEBUG = 0
 endif
 
 ifdef COMM
+MBX = -DAS_MBX
 COMM = -DCELL_COMM
 else
+MBX = -UAS_MBX
 COMM = -UCELL_COMM
 endif
 
@@ -17,7 +19,7 @@ CC=gcc
 #CFLAGS=-g -Wall -DDEBUG
 #CFLAGS=-fomit-frame-pointer -O3 -DLOG_FILE -Wall
 CFLAGS=-fomit-frame-pointer -O3 -W -Wall -Wno-unused-parameter \
-	-DDEBUG=$(DEBUG) $(COMM)
+	-DDEBUG=$(DEBUG) $(COMM) $(MBX)
 
 # for profiling
 
@@ -39,11 +41,15 @@ EXECS=magic-square queens alpha all-interval partit langford perfect-square
 	$(CC) -o $@ $(CFLAGS) $< $(LIBNAME)
 
 %-cell: spu/%.a Makefile.cell
-	make -f Makefile.cell DEBUG=$(DEBUG) COMM=$(COMM) libdefaults.a
-	make -f Makefile.cell DEBUG=$(DEBUG) COMM=$(COMM) BENCH=$(@:-cell=)
+	make -f Makefile.cell \
+		DEBUG=$(DEBUG) MBX=$(MBX) COMM=$(COMM) \
+			libdefaults.a
+	make -f Makefile.cell \
+		DEBUG=$(DEBUG) MBX=$(MBX) COMM=$(COMM) \
+			BENCH=$(@:-cell=)
 
 spu/%.a: %.c
-	cd spu; make COMM=$(COMM) DEBUG=$(DEBUG) BENCH=$*
+	cd spu; make COMM=$(COMM) MBX=$(MBX) DEBUG=$(DEBUG) BENCH=$*
 
 
 all: $(EXECS)

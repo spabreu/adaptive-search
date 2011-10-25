@@ -127,11 +127,13 @@ void as_exit (int status)
   exit (status);
 }
 
+#ifdef AS_MBX
 void as_receive ()
 {
   // -- *TBD* --
 
 }
+#endif
 
 void as_send ()
 {
@@ -169,6 +171,7 @@ void as_send ()
 }
 
 
+#ifdef AS_MBX
 // -- is there something available in my mailbox? -----------------------------
 int as_mbx_avail ()
 {
@@ -222,3 +225,4 @@ void as_mbx_copy_prev ()
 	    tag, 0, 0);
   waittag (tag);
 }
+#endif

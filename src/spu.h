@@ -40,11 +40,13 @@ typedef struct _asp_thread_d asp_thread_d;
 
 void as_init (uint64_t speid, uint64_t argp);
 void as_exit (int status);
-
-void as_receive ();
 void as_send    ();
 
+#ifdef AS_MBX
+void as_receive ();
+
 #include "../cell-extern.h"
+#endif
 
 #define as_exitf(...)				\
   do {						\
